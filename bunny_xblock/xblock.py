@@ -76,13 +76,27 @@ class BunnyVideoXBlock(XBlock):
     # ---- LMS student view -----------------------------------------------------------
 
     def student_view(self, context=None) -> Fragment:
-        """Renders the click-to-load poster + signed iframe player."""
+        """
+        Renders the signed Bunny iframe directly.
+
+        v0.1 used a click-to-load poster pattern (mirroring Cubite's
+        ``LazyBunnyEmbed``) but that requires the XBlock JS to mount the
+        iframe on click. Open edX's ``frontend-app-learning`` MFE renders
+        XBlocks through a React component that doesn't reliably call
+        ``initialize_js`` per block, so the click handler never got bound
+        and the play button no-op'd. The learner is on a unit page
+        specifically to watch this video, so eager-loading the iframe is
+        the right UX anyway — Bunny's own embed has a play button. Drops
+        an entire bootstrap-and-MFE-quirk class of bugs.
+        """
+        has_video = bool(self.guid and self.library_id)
         embed_url = ""
-        if self.guid and self.library_id:
+        if has_video:
             try:
+                # autoplay=false — let the learner click Bunny's play button.
                 embed_url = bunny_api.get_embed_url_for_video(
                     self.guid,
-                    extra_query={"autoplay": "true", "preload": "true", "responsive": "true"},
+                    extra_query={"autoplay": "false", "preload": "true", "responsive": "true"},
                 ) or ""
             except Exception as exc:  # pragma: no cover - defensive
                 log.warning(
@@ -94,22 +108,24 @@ class BunnyVideoXBlock(XBlock):
         # template uses str.format() (no jinja escaping) so a title containing
         # an unescaped `"` would break the surrounding attribute.
         safe_title = html.escape(self.title or "Bunny video", quote=True)
-        safe_poster = html.escape(self.thumbnail_url or "", quote=True)
         safe_embed = html.escape(embed_url, quote=True)
+
+        # Pre-compute the inline display:none on whichever pane isn't active —
+        # the v0.1 `[hidden]` attribute approach was getting outweighed by host
+        # CSS, so inline style is more robust.
+        show_player = bool(embed_url)
         rendered = _resource("templates/bunny_xblock/student_view.html").format(
             self=self,
-            has_video=bool(self.guid and self.library_id),
-            poster_url=safe_poster,
+            has_video="true" if has_video else "false",
             embed_url=safe_embed,
             title=safe_title,
+            player_hidden_style="" if show_player else ' style="display:none"',
+            fallback_hidden_style=' style="display:none"' if show_player else "",
         )
         fragment = Fragment(rendered)
         fragment.add_css(_resource("static/css/student_view.css"))
-        fragment.add_javascript(_resource("static/js/student_view.js"))
-        fragment.initialize_js(
-            "BunnyStudentView",
-            {"embedUrl": embed_url, "title": self.title or "Bunny video"},
-        )
+        # No JS needed — there's nothing to mount, no click to bind. Removing
+        # the script also closes the MFE-binding bug for good.
         return fragment
 
     # ---- Studio author view (inline) ------------------------------------------------
