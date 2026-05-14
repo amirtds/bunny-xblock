@@ -1,0 +1,93 @@
+name: Publish to PyPI
+
+# Triggers on any annotated git tag of the form `vX.Y.Z`. Push the tag with
+#   git tag v0.1.0 && git push origin v0.1.0
+# and this workflow builds + uploads the package via PyPI's Trusted Publishing
+# (OIDC) — no long-lived PyPI token is stored as a GitHub secret.
+#
+# Before the first run you MUST configure a "pending publisher" on PyPI:
+#   https://pypi.org/manage/account/publishing/
+#   - PyPI project name: xblock-bunny
+#   - Owner:             amirtds
+#   - Repository:        bunny-xblock
+#   - Workflow filename: release.yml
+#   - Environment:       release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:   # allow manual triggering from the Actions tab
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # tus-js-client ships into bunny_xblock/static/js/vendor/tus.min.js
+      # via curl in scripts/vendor.sh. Without this step the wheel would
+      # ship without the upload library and the Studio author view would
+      # break with `tus is not defined`.
+      - name: Vendor third-party JS
+        run: bash scripts/vendor.sh
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Verify the wheel's metadata + README rendering
+        run: |
+          python -m pip install --upgrade twine
+          twine check dist/*
+
+      - name: List built artifacts
+        run: ls -la dist/
+
+      - name: Upload artifacts for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  publish:
+    name: Upload to PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    # PyPI Trusted Publishing requires the `release` environment to exist on
+    # the repo (Settings → Environments) and to be referenced here so OIDC
+    # can match the workflow's claim.
+    environment:
+      name: release
+      url: https://pypi.org/project/xblock-bunny/
+
+    permissions:
+      id-token: write   # required for the OIDC trusted-publishing exchange
+      contents: read
+
+    steps:
+      - name: Download the built distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish via Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` — Trusted Publishing reads the OIDC token from
+        # the workflow environment and exchanges it with PyPI for a
+        # short-lived upload credential.
