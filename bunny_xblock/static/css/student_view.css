@@ -1,0 +1,99 @@
+/*
+ * Student-side player styles. Scoped under `.bunny-xblock--student` so they
+ * don't bleed into Studio's author UI.
+ */
+
+.bunny-xblock--student {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  margin: 1.5em auto;
+}
+
+.bunny-xblock--student .bunny-xblock__player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0f1115;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.bunny-xblock--student .bunny-xblock__poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: block;
+}
+
+.bunny-xblock--student .bunny-xblock__poster:focus-visible {
+  outline: 3px solid #5da9ff;
+  outline-offset: -3px;
+}
+
+.bunny-xblock--student .bunny-xblock__thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bunny-xblock--student .bunny-xblock__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.4) 100%);
+  transition: background 0.2s ease;
+}
+
+.bunny-xblock--student .bunny-xblock__poster:hover .bunny-xblock__scrim {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.0) 0%, rgba(0, 0, 0, 0.25) 100%);
+}
+
+.bunny-xblock--student .bunny-xblock__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.bunny-xblock--student .bunny-xblock__poster:hover .bunny-xblock__play {
+  transform: scale(1.06);
+  background: #fff;
+}
+
+.bunny-xblock--student .bunny-xblock__play svg {
+  margin-left: 4px; /* optical centring on the play triangle */
+}
+
+.bunny-xblock--student .bunny-xblock__iframe-slot,
+.bunny-xblock--student .bunny-xblock__iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.bunny-xblock--student .bunny-xblock__fallback {
+  margin: 0.75em 0 0;
+  font-size: 0.875rem;
+  color: #c44;
+}

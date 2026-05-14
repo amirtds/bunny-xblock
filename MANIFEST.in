@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+include CHANGELOG.md
+recursive-include bunny_xblock/templates *.html
+recursive-include bunny_xblock/static *.js *.css
+recursive-include bunny_xblock/migrations *.py

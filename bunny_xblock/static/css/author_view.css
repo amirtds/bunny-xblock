@@ -1,0 +1,243 @@
+/*
+ * Studio-side author view styles. Scoped under `.bunny-xblock--author` so
+ * they don't bleed into the LMS player or other XBlocks on the unit page.
+ */
+
+.bunny-xblock--author {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  border: 1px solid #e0e3e7;
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: #fff;
+  margin: 1rem 0;
+}
+
+.bunny-xblock--author .bunny-xblock__panel {
+  display: block;
+}
+
+/* ---- Empty state -------------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__dropzone {
+  border: 2px dashed #cbd2da;
+  border-radius: 10px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background: #fafbfc;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone.is-dragover {
+  border-color: #5da9ff;
+  background: #f1f8ff;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-inner svg {
+  color: #8a93a0;
+  margin-bottom: 0.5rem;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-headline {
+  margin: 0.25rem 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-sub {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #6c7682;
+}
+
+.bunny-xblock--author .bunny-xblock__error {
+  margin: 0.75rem 0 0;
+  color: #b22a2a;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+
+.bunny-xblock--author .bunny-xblock__btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #cbd2da;
+  background: #fff;
+  color: #2a2f36;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__btn:hover {
+  background: #f3f5f7;
+}
+
+.bunny-xblock--author .bunny-xblock__btn--primary {
+  background: #2a64f6;
+  border-color: #2a64f6;
+  color: #fff;
+}
+
+.bunny-xblock--author .bunny-xblock__btn--primary:hover {
+  background: #1f4fcf;
+  border-color: #1f4fcf;
+}
+
+.bunny-xblock--author .bunny-xblock__btn--danger {
+  background: #fff;
+  border-color: #d9534f;
+  color: #c2342f;
+}
+
+.bunny-xblock--author .bunny-xblock__btn--danger:hover {
+  background: #fdecea;
+}
+
+.bunny-xblock--author .bunny-xblock__btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #5b6470;
+}
+
+/* ---- Uploading state ---------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__progress {
+  padding: 1.5rem;
+  background: #f6f8fa;
+  border-radius: 10px;
+}
+
+.bunny-xblock--author .bunny-xblock__progress-headline {
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bunny-xblock--author .bunny-xblock__progress-percent {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #2a64f6;
+  font-size: 0.875rem;
+}
+
+.bunny-xblock--author .bunny-xblock__bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-bar { background: #e2e6ea; }
+.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-value { background: #2a64f6; transition: width 0.1s linear; }
+.bunny-xblock--author .bunny-xblock__bar::-moz-progress-bar { background: #2a64f6; }
+
+/* ---- Processing state --------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__processing {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1.25rem;
+  background: #fffbe6;
+  border-radius: 10px;
+  border: 1px solid #ffe58f;
+}
+
+.bunny-xblock--author .bunny-xblock__processing-headline {
+  margin: 0;
+  font-weight: 600;
+  color: #614d00;
+}
+
+.bunny-xblock--author .bunny-xblock__processing-sub {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  color: #7c6500;
+}
+
+.bunny-xblock--author .bunny-xblock__spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #ffe58f;
+  border-top-color: #b88600;
+  animation: bunny-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes bunny-spin { to { transform: rotate(360deg); } }
+
+/* ---- Ready state -------------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f1115;
+}
+
+.bunny-xblock--author .bunny-xblock__iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.bunny-xblock--author .bunny-xblock__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ---- Failed state ------------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__failed {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 1.25rem;
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  border-radius: 10px;
+  color: #a8071a;
+}
+
+.bunny-xblock--author .bunny-xblock__failed-headline { margin: 0; font-weight: 600; }
+.bunny-xblock--author .bunny-xblock__failed-sub { margin: 0.125rem 0 0; font-size: 0.8125rem; }
+
+/* ---- Title field -------------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__field {
+  margin-top: 0.875rem;
+}
+
+.bunny-xblock--author .bunny-xblock__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #5b6470;
+}
+
+.bunny-xblock--author .bunny-xblock__input {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  border: 1px solid #cbd2da;
+  font-size: 0.9375rem;
+}
+
+.bunny-xblock--author .bunny-xblock__input:focus {
+  outline: none;
+  border-color: #5da9ff;
+  box-shadow: 0 0 0 3px rgba(93, 169, 255, 0.18);
+}

@@ -1,0 +1,24 @@
+<div class="bunny-xblock bunny-xblock--student" data-embed-url="{embed_url}" data-has-video="{has_video}">
+  <div class="bunny-xblock__player">
+    <button type="button"
+            class="bunny-xblock__poster"
+            aria-label="Play video: {title}"
+            data-action="play">
+      <img class="bunny-xblock__thumb"
+           src="{poster_url}"
+           alt=""
+           loading="lazy"
+           onerror="this.style.display='none';" />
+      <span class="bunny-xblock__scrim" aria-hidden="true"></span>
+      <span class="bunny-xblock__play" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </span>
+    </button>
+    <div class="bunny-xblock__iframe-slot" aria-hidden="true"></div>
+  </div>
+  <p class="bunny-xblock__fallback" hidden>
+    This video can't be loaded. Check with the course staff if the problem persists.
+  </p>
+</div>
