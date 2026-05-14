@@ -71,7 +71,12 @@ class BunnyVideoXBlock(XBlock):
     # instead of falling back to the modal `studio_view`.
     has_author_view = True
 
-    editable_fields = ("display_name",)
+    # No editable fields surfaced via Studio's auto-form. The pencil-icon
+    # edit button in the XBlock chrome only appears when either `studio_view`
+    # is defined OR `editable_fields` is non-empty — emptying it (and
+    # dropping `studio_view` below) removes the pencil entirely, since the
+    # inline `author_view` covers all editing.
+    editable_fields = ()
 
     # ---- LMS student view -----------------------------------------------------------
 
@@ -209,10 +214,10 @@ class BunnyVideoXBlock(XBlock):
         )
         return fragment
 
-    # If Studio ever falls back to studio_view (e.g. older runtimes), give
-    # it the same inline UI rather than a stub edit form.
-    def studio_view(self, context=None) -> Fragment:  # pragma: no cover
-        return self.author_view(context)
+    # Note: `studio_view` is deliberately not implemented. Its absence
+    # (paired with `editable_fields = ()`) tells Studio to hide the pencil
+    # edit-icon in the XBlock chrome — there's no separate edit form, the
+    # inline `author_view` covers everything.
 
     # ---- JSON handlers (called by author_view.js) -----------------------------------
 
