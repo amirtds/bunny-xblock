@@ -24,7 +24,26 @@ function BunnyAuthorView(runtime, element, config) {
 
   // ---- DOM lookup -----------------------------------------------------------------
 
-  var root = element.querySelector(".bunny-xblock--author");
+  // Studio (CMS) wraps `element` in a jQuery object before calling XBlock
+  // initialize_js. The LMS sometimes passes a raw DOM node. Workbench /
+  // newer runtimes may also vary. Unwrap defensively so the rest of the
+  // code can use DOM methods regardless of which wrapper we got.
+  function unwrap(el) {
+    if (!el) return null;
+    if (el.nodeType === 1) return el;                                  // raw DOM Element
+    if (el[0] && el[0].nodeType === 1) return el[0];                    // jQuery / NodeList-like
+    if (typeof el.get === "function" && el.get(0)) return el.get(0);    // jQuery .get(0)
+    return null;
+  }
+  var hostElement = unwrap(element);
+  if (!hostElement) return;
+
+  // The host node may itself be the root (workbench/MFE) or just the
+  // outer Studio chrome containing our root somewhere inside.
+  var root =
+    hostElement.classList && hostElement.classList.contains("bunny-xblock--author")
+      ? hostElement
+      : hostElement.querySelector(".bunny-xblock--author");
   if (!root) return;
 
   var panels = {
