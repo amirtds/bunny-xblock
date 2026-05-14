@@ -733,6 +733,228 @@
   color: var(--bunny-success);
 }
 
+/* ---- Section blocks (Subtitles, Chapters) ---------------------------- */
+
+.bunny-xblock--author .bunny-xblock__section {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line);
+  border-radius: 12px;
+}
+
+.bunny-xblock--author .bunny-xblock__section-header {
+  margin: 0 0 1rem;
+}
+
+.bunny-xblock--author .bunny-xblock__section-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--bunny-font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 36;
+  letter-spacing: -0.012em;
+  color: var(--bunny-ink);
+}
+
+.bunny-xblock--author .bunny-xblock__section-help {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--bunny-muted);
+  line-height: 1.55;
+}
+
+.bunny-xblock--author .bunny-xblock__section-help code {
+  font-family: var(--bunny-font-mono);
+  font-size: 0.85em;
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 4px;
+  background: var(--bunny-surface);
+  color: var(--bunny-accent-strong);
+}
+
+.bunny-xblock--author .bunny-xblock__section-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* ---- Captions list ---------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__captions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bunny-xblock--author .bunny-xblock__captions-list:empty {
+  display: none;
+}
+
+.bunny-xblock--author .bunny-xblock__captions-list:not(:empty) + .bunny-xblock__captions-empty {
+  display: none;
+}
+
+.bunny-xblock--author .bunny-xblock__captions-empty {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--bunny-muted);
+  font-style: italic;
+}
+
+.bunny-xblock--author .bunny-xblock__caption-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--bunny-surface);
+  border-radius: 8px;
+}
+
+.bunny-xblock--author .bunny-xblock__caption-lang {
+  font-family: var(--bunny-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 6px;
+  background: var(--bunny-accent-soft);
+  color: var(--bunny-accent-strong);
+}
+
+.bunny-xblock--author .bunny-xblock__caption-label {
+  flex: 1;
+  font-size: 0.9375rem;
+  color: var(--bunny-ink);
+}
+
+.bunny-xblock--author .bunny-xblock__caption-row .bunny-xblock__btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.bunny-xblock--author .bunny-xblock__caption-status,
+.bunny-xblock--author .bunny-xblock__chapter-status {
+  font-family: var(--bunny-font-mono);
+  font-size: 0.8125rem;
+  color: var(--bunny-accent);
+  letter-spacing: 0.02em;
+}
+
+.bunny-xblock--author .bunny-xblock__caption-status[data-state="error"],
+.bunny-xblock--author .bunny-xblock__chapter-status[data-state="error"] {
+  color: var(--bunny-error);
+}
+.bunny-xblock--author .bunny-xblock__caption-status[data-state="success"],
+.bunny-xblock--author .bunny-xblock__chapter-status[data-state="success"] {
+  color: var(--bunny-success);
+}
+
+/* ---- Chapters table -------------------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__chapters-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-table thead th {
+  padding: 0 0.625rem 0.625rem;
+  text-align: left;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bunny-muted);
+  border-bottom: 1px dashed var(--bunny-line);
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-time {
+  width: 110px;
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-actions {
+  width: 60px;
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-table tbody:empty + .bunny-xblock__chapters-empty {
+  display: block;
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-table tbody tr {
+  border-bottom: 1px solid var(--bunny-line);
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-table td {
+  padding: 0.625rem;
+  vertical-align: middle;
+}
+
+.bunny-xblock--author .bunny-xblock__chapter-time-input,
+.bunny-xblock--author .bunny-xblock__chapter-title-input {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  border: 1px solid var(--bunny-line-strong);
+  background: var(--bunny-paper);
+  color: var(--bunny-ink);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__chapter-time-input {
+  font-family: var(--bunny-font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bunny-xblock--author .bunny-xblock__chapter-time-input:focus-visible,
+.bunny-xblock--author .bunny-xblock__chapter-title-input:focus-visible {
+  outline: 2px solid var(--bunny-accent);
+  outline-offset: 2px;
+  border-color: var(--bunny-line-strong);
+}
+
+.bunny-xblock--author .bunny-xblock__chapter-remove {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--bunny-muted);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__chapter-remove:hover {
+  background: var(--bunny-error-soft);
+  color: var(--bunny-error);
+}
+
+.bunny-xblock--author .bunny-xblock__chapters-empty {
+  display: none;
+  padding: 1rem 0.625rem;
+  font-size: 0.9375rem;
+  color: var(--bunny-muted);
+  font-style: italic;
+  text-align: center;
+}
+
 /* ---- Failed state ------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__failed {

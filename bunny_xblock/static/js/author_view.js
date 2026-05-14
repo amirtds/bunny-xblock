@@ -53,6 +53,17 @@ function BunnyAuthorView(runtime, element, config) {
   var thumbnailFile = root.querySelector("[data-bunny-thumbnail-file]");
   var thumbnailStatus = root.querySelector("[data-bunny-thumbnail-status]");
 
+  // Subtitles
+  var captionsList = root.querySelector("[data-bunny-captions-list]");
+  var captionsEmpty = root.querySelector("[data-bunny-captions-empty]");
+  var captionFile = root.querySelector("[data-bunny-caption-file]");
+  var captionStatus = root.querySelector("[data-bunny-caption-status]");
+
+  // Chapters
+  var chaptersRows = root.querySelector("[data-bunny-chapters-rows]");
+  var saveChaptersBtn = root.querySelector("[data-bunny-save-chapters]");
+  var chapterStatus = root.querySelector("[data-bunny-chapter-status]");
+
   // ---- State ----------------------------------------------------------------------
 
   var state = {
@@ -376,6 +387,8 @@ function BunnyAuthorView(runtime, element, config) {
 
   function flipToReady() {
     syncReadyMeta();
+    refreshCaptions();
+    refreshChapters();
     // If the iframe was already server-rendered with a signed URL, reuse it.
     var iframe = panels.ready && panels.ready.querySelector(".bunny-xblock__iframe");
     var existingSrc = iframe ? iframe.getAttribute("src") : "";
@@ -528,6 +541,288 @@ function BunnyAuthorView(runtime, element, config) {
       });
   }
 
+  // ---- Subtitles --------------------------------------------------------------
+
+  function setCaptionStatus(message, state) {
+    if (!captionStatus) return;
+    if (message) {
+      captionStatus.textContent = message;
+      captionStatus.hidden = false;
+      captionStatus.style.display = "";
+      captionStatus.setAttribute("data-state", state || "info");
+    } else {
+      captionStatus.textContent = "";
+      captionStatus.hidden = true;
+      captionStatus.style.display = "none";
+      captionStatus.removeAttribute("data-state");
+    }
+  }
+
+  function renderCaptions(captions) {
+    if (!captionsList) return;
+    captionsList.innerHTML = "";
+    if (!captions || captions.length === 0) {
+      if (captionsEmpty) { captionsEmpty.hidden = false; captionsEmpty.style.display = ""; }
+      return;
+    }
+    if (captionsEmpty) { captionsEmpty.hidden = true; captionsEmpty.style.display = "none"; }
+    for (var i = 0; i < captions.length; i++) {
+      var c = captions[i];
+      var li = document.createElement("li");
+      li.className = "bunny-xblock__caption-row";
+      li.innerHTML =
+        '<span class="bunny-xblock__caption-lang"></span>' +
+        '<span class="bunny-xblock__caption-label"></span>' +
+        '<button type="button" class="bunny-xblock__btn bunny-xblock__btn--danger" data-action="delete-caption">Remove</button>';
+      li.querySelector(".bunny-xblock__caption-lang").textContent = c.srclang || "??";
+      li.querySelector(".bunny-xblock__caption-label").textContent = c.label || c.srclang || "Untitled";
+      li.setAttribute("data-srclang", c.srclang || "");
+      captionsList.appendChild(li);
+    }
+  }
+
+  function refreshCaptions() {
+    if (!state.guid) return;
+    var url = endpoints.captions.replace("{guid}", encodeURIComponent(state.guid));
+    getJson(url)
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && data.captions) renderCaptions(data.captions);
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  function uploadCaption(file) {
+    if (!file || !state.guid) return;
+    var srclang = (window.prompt("Language code for this caption (e.g. en, pt-BR):", "en") || "").trim().toLowerCase();
+    if (!srclang) return;
+    var label = (window.prompt("Display label for this caption track:", srclang.toUpperCase()) || srclang.toUpperCase()).trim();
+
+    setCaptionStatus("Uploading…", "info");
+    var url = endpoints.captions.replace("{guid}", encodeURIComponent(state.guid));
+    var form = new FormData();
+    form.append("vtt", file);
+    form.append("srclang", srclang);
+    form.append("label", label);
+    fetch(url, {
+      method: "POST",
+      headers: csrfHeaders({ "Accept": "application/json" }),
+      credentials: "same-origin",
+      body: form,
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error((body && (body.error || body.detail)) || ("Upload failed (HTTP " + res.status + ")"));
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (data && data.captions) renderCaptions(data.captions);
+        setCaptionStatus("Added " + srclang, "success");
+        setTimeout(function () { setCaptionStatus("", null); }, 2500);
+      })
+      .catch(function (err) {
+        console.error("[bunny:author] caption upload failed", err);
+        setCaptionStatus(err.message || "Upload failed", "error");
+      });
+  }
+
+  function deleteCaption(srclang) {
+    if (!state.guid || !srclang) return;
+    if (!window.confirm("Remove the '" + srclang + "' subtitle track?")) return;
+    var url = endpoints.captionDelete
+      .replace("{guid}", encodeURIComponent(state.guid))
+      .replace("{srclang}", encodeURIComponent(srclang));
+    setCaptionStatus("Removing…", "info");
+    deleteJson(url)
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error((body && (body.error || body.detail)) || ("Delete failed (HTTP " + res.status + ")"));
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (data && data.captions) renderCaptions(data.captions);
+        setCaptionStatus("Removed", "success");
+        setTimeout(function () { setCaptionStatus("", null); }, 2500);
+      })
+      .catch(function (err) {
+        console.error("[bunny:author] caption delete failed", err);
+        setCaptionStatus(err.message || "Remove failed", "error");
+      });
+  }
+
+  function transcribeAudio() {
+    if (!state.guid) return;
+    if (!window.confirm(
+      "Bunny will transcribe the audio and add a subtitle track. " +
+      "This may take a few minutes — the track appears in the list automatically when ready. Continue?"
+    )) return;
+    var url = endpoints.transcribe.replace("{guid}", encodeURIComponent(state.guid));
+    setCaptionStatus("Transcription started — check back in a minute.", "info");
+    postJson(url, { language: "en" })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error((body && (body.error || body.detail)) || ("Transcribe failed (HTTP " + res.status + ")"));
+          });
+        }
+        return res.json();
+      })
+      .then(function () {
+        setCaptionStatus("Transcribing in the background…", "info");
+        // Re-poll captions every 20s up to 5 minutes
+        var attempts = 0;
+        var pollInterval = setInterval(function () {
+          attempts += 1;
+          refreshCaptions();
+          if (attempts >= 15) clearInterval(pollInterval);
+        }, 20000);
+      })
+      .catch(function (err) {
+        console.error("[bunny:author] transcribe failed", err);
+        setCaptionStatus(err.message || "Transcribe failed", "error");
+      });
+  }
+
+  // ---- Chapters ---------------------------------------------------------------
+
+  // Parse "1:30" or "90" → 90 seconds. Returns -1 on bad input.
+  function parseTime(value) {
+    if (typeof value === "number") return Math.max(0, Math.floor(value));
+    var s = (value || "").trim();
+    if (!s) return 0;
+    if (/^\d+$/.test(s)) return parseInt(s, 10);
+    var m = s.match(/^(\d+):(\d{1,2})$/);
+    if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    var h = s.match(/^(\d+):(\d{1,2}):(\d{1,2})$/);
+    if (h) return parseInt(h[1], 10) * 3600 + parseInt(h[2], 10) * 60 + parseInt(h[3], 10);
+    return -1;
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.floor(sec || 0));
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    var mm = (m < 10 && h > 0 ? "0" : "") + m;
+    var ss = (s < 10 ? "0" : "") + s;
+    return h > 0 ? h + ":" + mm + ":" + ss : m + ":" + ss;
+  }
+
+  function setChapterStatus(message, state) {
+    if (!chapterStatus) return;
+    if (message) {
+      chapterStatus.textContent = message;
+      chapterStatus.hidden = false;
+      chapterStatus.style.display = "";
+      chapterStatus.setAttribute("data-state", state || "info");
+    } else {
+      chapterStatus.textContent = "";
+      chapterStatus.hidden = true;
+      chapterStatus.style.display = "none";
+      chapterStatus.removeAttribute("data-state");
+    }
+  }
+
+  function markChaptersDirty(dirty) {
+    if (!saveChaptersBtn) return;
+    saveChaptersBtn.disabled = !dirty;
+  }
+
+  function addChapterRow(chapter) {
+    if (!chaptersRows) return;
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td><input type="text" class="bunny-xblock__chapter-time-input" placeholder="0:00" aria-label="Start" /></td>' +
+      '<td><input type="text" class="bunny-xblock__chapter-title-input" placeholder="Chapter title" aria-label="Title" /></td>' +
+      '<td><button type="button" class="bunny-xblock__chapter-remove" aria-label="Remove chapter" data-action="remove-chapter">×</button></td>';
+    var timeInput = tr.querySelector(".bunny-xblock__chapter-time-input");
+    var titleInput = tr.querySelector(".bunny-xblock__chapter-title-input");
+    if (chapter) {
+      timeInput.value = fmtTime(chapter.start || 0);
+      titleInput.value = chapter.title || "";
+    }
+    timeInput.addEventListener("input", function () { markChaptersDirty(true); });
+    titleInput.addEventListener("input", function () { markChaptersDirty(true); });
+    chaptersRows.appendChild(tr);
+  }
+
+  function renderChapters(chapters) {
+    if (!chaptersRows) return;
+    chaptersRows.innerHTML = "";
+    if (!chapters || chapters.length === 0) {
+      markChaptersDirty(false);
+      return;
+    }
+    for (var i = 0; i < chapters.length; i++) addChapterRow(chapters[i]);
+    markChaptersDirty(false);
+  }
+
+  function refreshChapters() {
+    if (!state.guid) return;
+    var url = endpoints.chapters.replace("{guid}", encodeURIComponent(state.guid));
+    getJson(url)
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && data.chapters) renderChapters(data.chapters);
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  function collectChapters() {
+    if (!chaptersRows) return [];
+    var rows = chaptersRows.querySelectorAll("tr");
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var t = rows[i].querySelector(".bunny-xblock__chapter-time-input").value;
+      var title = rows[i].querySelector(".bunny-xblock__chapter-title-input").value;
+      var start = parseTime(t);
+      if (start < 0) return { error: "Row " + (i + 1) + ": '" + t + "' isn't a valid time. Use seconds, mm:ss, or hh:mm:ss." };
+      if (!title.trim()) return { error: "Row " + (i + 1) + ": missing title." };
+      out.push({ title: title.trim(), start: start, end: 0 });
+    }
+    return { chapters: out };
+  }
+
+  function saveChapters() {
+    if (!state.guid) return;
+    var collected = collectChapters();
+    if (collected.error) {
+      setChapterStatus(collected.error, "error");
+      return;
+    }
+    setChapterStatus("Saving…", "info");
+    var url = endpoints.chapters.replace("{guid}", encodeURIComponent(state.guid));
+    fetch(url, {
+      method: "PUT",
+      headers: csrfHeaders({ "Content-Type": "application/json", "Accept": "application/json" }),
+      credentials: "same-origin",
+      body: JSON.stringify({ chapters: collected.chapters }),
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error((body && (body.error || body.detail)) || ("Save failed (HTTP " + res.status + ")"));
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (data && data.chapters) renderChapters(data.chapters);
+        setChapterStatus("Saved", "success");
+        setTimeout(function () { setChapterStatus("", null); }, 2500);
+      })
+      .catch(function (err) {
+        console.error("[bunny:author] chapters save failed", err);
+        setChapterStatus(err.message || "Save failed", "error");
+      });
+  }
+
   function deleteVideo() {
     if (!state.guid) return;
     closeModal();
@@ -598,6 +893,23 @@ function BunnyAuthorView(runtime, element, config) {
       case "modal-cancel": closeModal(); break;
       case "modal-confirm": deleteVideo(); break;
       case "upload-thumbnail": thumbnailFile && thumbnailFile.click(); break;
+      case "upload-caption": captionFile && captionFile.click(); break;
+      case "transcribe": transcribeAudio(); break;
+      case "delete-caption": {
+        var row = btn.closest("[data-srclang]");
+        if (row) deleteCaption(row.getAttribute("data-srclang"));
+        break;
+      }
+      case "add-chapter": addChapterRow(null); markChaptersDirty(true); break;
+      case "remove-chapter": {
+        var tr = btn.closest("tr");
+        if (tr && tr.parentNode) {
+          tr.parentNode.removeChild(tr);
+          markChaptersDirty(true);
+        }
+        break;
+      }
+      case "save-chapters": saveChapters(); break;
     }
   });
 
@@ -605,6 +917,14 @@ function BunnyAuthorView(runtime, element, config) {
     thumbnailFile.addEventListener("change", function (e) {
       var file = e.target.files && e.target.files[0];
       if (file) uploadThumbnail(file);
+      e.target.value = "";
+    });
+  }
+
+  if (captionFile) {
+    captionFile.addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (file) uploadCaption(file);
       e.target.value = "";
     });
   }
@@ -669,6 +989,10 @@ function BunnyAuthorView(runtime, element, config) {
   } else if (state.status === "failed") {
     show("failed");
   } else if (state.guid && state.libraryId) {
+    // Initial render with an already-ready video — refresh the lists so the
+    // author sees existing captions / chapters without waiting for a flip.
+    refreshCaptions();
+    refreshChapters();
     show("ready");
   } else {
     show("empty");

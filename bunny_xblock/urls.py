@@ -8,8 +8,12 @@ loader (see ``apps.BunnyXBlockAppConfig.plugin_app["url_config"]``).
 from django.urls import path
 
 from .views import (
+    CaptionDeleteView,
+    CaptionsView,
+    ChaptersView,
     EmbedUrlView,
     ThumbnailView,
+    TranscribeView,
     UploadTokenView,
     VideoDetailView,
     VideoFinalizeView,
@@ -24,6 +28,10 @@ urlpatterns = [
     path("videos/<str:guid>", VideoDetailView.as_view(), name="video_detail"),
     path("videos/<str:guid>/finalize", VideoFinalizeView.as_view(), name="video_finalize"),
     path("videos/<str:guid>/thumbnail", ThumbnailView.as_view(), name="video_thumbnail"),
+    path("videos/<str:guid>/captions", CaptionsView.as_view(), name="video_captions"),
+    path("videos/<str:guid>/captions/<str:srclang>", CaptionDeleteView.as_view(), name="video_caption_detail"),
+    path("videos/<str:guid>/transcribe", TranscribeView.as_view(), name="video_transcribe"),
+    path("videos/<str:guid>/chapters", ChaptersView.as_view(), name="video_chapters"),
     path("embed-url", EmbedUrlView.as_view(), name="embed_url"),
     # Bunny → Cubite (public, token-in-URL auth)
     path("webhook/<str:token>", webhook, name="webhook"),

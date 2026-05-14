@@ -178,6 +178,159 @@ def delete_bunny_video(cfg: BunnyConfig, guid: str) -> None:
         raise BunnyAPIError(res.status_code, f"Bunny deleteVideo failed ({res.status_code}): {res.text[:200]}")
 
 
+def list_bunny_captions(cfg: BunnyConfig, guid: str) -> list:
+    """
+    Return the list of captions attached to a video.
+
+    Bunny exposes captions as part of the GET-video response under the
+    ``captions`` array. Each item has ``srclang`` (e.g. ``en``), ``label``
+    (display name), and an internal CDN URL. We hand the array back as-is
+    so the caller can render it without knowing Bunny's shape.
+    """
+    meta = get_bunny_video(cfg, guid)
+    if not meta:
+        return []
+    captions = meta.get("captions") or []
+    # Normalize to lowercase keys for the UI — Bunny mixes camelCase and
+    # PascalCase across endpoints.
+    out = []
+    for c in captions:
+        if not isinstance(c, dict):
+            continue
+        out.append({
+            "srclang": c.get("srclang") or c.get("Srclang") or "",
+            "label": c.get("label") or c.get("Label") or "",
+        })
+    return out
+
+
+def upload_bunny_caption(
+    cfg: BunnyConfig, guid: str, srclang: str, label: str, vtt_bytes: bytes
+) -> None:
+    """
+    Attach a VTT caption to a video. Bunny accepts the file as a
+    base64-encoded ``captionsFile`` field in the JSON body — odd but
+    documented.
+
+    Endpoint:
+        POST /library/{libraryId}/videos/{videoId}/captions/{srclang}
+        body: { "srclang", "label", "captionsFile": base64(vtt) }
+    """
+    import base64
+
+    payload = {
+        "srclang": srclang,
+        "label": label or srclang.upper(),
+        "captionsFile": base64.b64encode(vtt_bytes).decode("ascii"),
+    }
+    url = f"{BUNNY_BASE}/library/{cfg.library_id}/videos/{guid}/captions/{srclang}"
+    res = requests.post(
+        url,
+        headers={
+            "AccessKey": cfg.api_key,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=30,
+    )
+    if not res.ok:
+        raise BunnyAPIError(
+            res.status_code,
+            f"Bunny uploadCaption failed ({res.status_code}): {res.text[:200]}",
+        )
+
+
+def delete_bunny_caption(cfg: BunnyConfig, guid: str, srclang: str) -> None:
+    """Remove a caption track. ``srclang`` is the BCP-47 code used at upload."""
+    url = f"{BUNNY_BASE}/library/{cfg.library_id}/videos/{guid}/captions/{srclang}"
+    res = requests.delete(
+        url,
+        headers={"AccessKey": cfg.api_key, "Accept": "application/json"},
+        timeout=15,
+    )
+    if not res.ok and res.status_code != 404:
+        raise BunnyAPIError(
+            res.status_code,
+            f"Bunny deleteCaption failed ({res.status_code}): {res.text[:200]}",
+        )
+
+
+def transcribe_bunny_video(cfg: BunnyConfig, guid: str, language: str = "en", force: bool = False) -> None:
+    """
+    Ask Bunny to auto-transcribe the video's audio into a caption track.
+
+    Endpoint:
+        POST /library/{libraryId}/videos/{videoId}/transcribe
+            ?language={BCP-47}&force={true|false}
+
+    Bunny runs ASR asynchronously and adds the result to the video's
+    ``captions`` array when complete. The author re-fetches the captions
+    list to see it appear.
+    """
+    url = f"{BUNNY_BASE}/library/{cfg.library_id}/videos/{guid}/transcribe"
+    res = requests.post(
+        url,
+        headers={"AccessKey": cfg.api_key, "Accept": "application/json"},
+        params={"language": language, "force": "true" if force else "false"},
+        timeout=30,
+    )
+    if not res.ok:
+        raise BunnyAPIError(
+            res.status_code,
+            f"Bunny transcribe failed ({res.status_code}): {res.text[:200]}",
+        )
+
+
+def get_bunny_chapters(cfg: BunnyConfig, guid: str) -> list:
+    """
+    Return the chapters stored on a video as a list of dicts with
+    ``title``, ``start`` (seconds), ``end`` (seconds).
+    """
+    meta = get_bunny_video(cfg, guid)
+    if not meta:
+        return []
+    chapters = meta.get("chapters") or []
+    out = []
+    for ch in chapters:
+        if not isinstance(ch, dict):
+            continue
+        out.append({
+            "title": (ch.get("title") or ch.get("Title") or "").strip(),
+            "start": int(ch.get("start") or ch.get("Start") or 0),
+            "end": int(ch.get("end") or ch.get("End") or 0),
+        })
+    return out
+
+
+def set_bunny_chapters(cfg: BunnyConfig, guid: str, chapters: list) -> None:
+    """
+    Replace the chapter list on a video. Each chapter is
+    ``{title: str, start: int, end: int}`` with seconds for ``start`` /
+    ``end``. Pass an empty list to clear chapters.
+
+    Endpoint:
+        POST /library/{libraryId}/videos/{videoId}
+        body: { "chapters": [...] }
+    """
+    url = f"{BUNNY_BASE}/library/{cfg.library_id}/videos/{guid}"
+    res = requests.post(
+        url,
+        headers={
+            "AccessKey": cfg.api_key,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        json={"chapters": chapters},
+        timeout=15,
+    )
+    if not res.ok:
+        raise BunnyAPIError(
+            res.status_code,
+            f"Bunny setChapters failed ({res.status_code}): {res.text[:200]}",
+        )
+
+
 def set_bunny_thumbnail(cfg: BunnyConfig, guid: str, image_bytes: bytes, content_type: str) -> None:
     """
     Upload a custom thumbnail to Bunny.

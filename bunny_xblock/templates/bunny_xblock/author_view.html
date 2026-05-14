@@ -143,6 +143,65 @@
       </div>
     </div>
 
+    <!-- ─── Subtitles section ────────────────────────────────────────── -->
+    <section class="bunny-xblock__section" aria-labelledby="bunny-subtitles-label">
+      <header class="bunny-xblock__section-header">
+        <h3 class="bunny-xblock__section-title" id="bunny-subtitles-label">Subtitles</h3>
+        <p class="bunny-xblock__section-help">
+          Upload a WebVTT file per language, or let Bunny transcribe from the audio.
+          Bunny's player shows the language picker automatically.
+        </p>
+      </header>
+
+      <ul class="bunny-xblock__captions-list" data-bunny-captions-list></ul>
+      <p class="bunny-xblock__captions-empty" data-bunny-captions-empty>
+        No subtitles yet.
+      </p>
+
+      <div class="bunny-xblock__section-actions">
+        <button type="button" class="bunny-xblock__btn" data-action="upload-caption">
+          Upload .vtt subtitles
+        </button>
+        <button type="button" class="bunny-xblock__btn" data-action="transcribe">
+          Generate from audio
+        </button>
+        <span class="bunny-xblock__caption-status" data-bunny-caption-status hidden></span>
+      </div>
+      <input type="file" accept=".vtt,text/vtt,text/plain"
+             class="bunny-xblock__file" data-bunny-caption-file hidden />
+    </section>
+
+    <!-- ─── Chapters section ─────────────────────────────────────────── -->
+    <section class="bunny-xblock__section" aria-labelledby="bunny-chapters-label">
+      <header class="bunny-xblock__section-header">
+        <h3 class="bunny-xblock__section-title" id="bunny-chapters-label">Chapters</h3>
+        <p class="bunny-xblock__section-help">
+          Mark segments so learners can jump between them. Use seconds (e.g. <code>0</code>, <code>45</code>, <code>180</code>) or <code>mm:ss</code>.
+        </p>
+      </header>
+
+      <table class="bunny-xblock__chapters-table" data-bunny-chapters-table>
+        <thead>
+          <tr>
+            <th class="bunny-xblock__chapters-time">Start</th>
+            <th>Title</th>
+            <th class="bunny-xblock__chapters-actions" aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody data-bunny-chapters-rows></tbody>
+      </table>
+
+      <div class="bunny-xblock__section-actions">
+        <button type="button" class="bunny-xblock__btn" data-action="add-chapter">
+          + Add chapter
+        </button>
+        <button type="button" class="bunny-xblock__btn" data-action="save-chapters" disabled data-bunny-save-chapters>
+          Save chapters
+        </button>
+        <span class="bunny-xblock__chapter-status" data-bunny-chapter-status hidden></span>
+      </div>
+    </section>
+
     <div class="bunny-xblock__actions">
       <button type="button" class="bunny-xblock__btn" data-action="replace">Replace video</button>
       <span class="bunny-xblock__actions-spacer"></span>

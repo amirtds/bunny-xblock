@@ -22,6 +22,7 @@ upgrading to Redis is a v0.2 question.
 from __future__ import annotations
 
 import logging
+import re
 import time
 
 from django.shortcuts import get_object_or_404
@@ -271,6 +272,225 @@ class EmbedUrlView(APIView):
         if not url:
             return Response({"error": "Video not found"}, status=status.HTTP_404_NOT_FOUND)
         return Response({"url": url})
+
+
+class CaptionsView(APIView):
+    """
+    ``GET /videos/<guid>/captions`` — list attached caption tracks.
+    ``POST /videos/<guid>/captions`` — upload a VTT file as a new caption.
+
+    POST is multipart: ``vtt`` file, plus ``srclang`` and ``label`` form
+    fields. We pass the file bytes through to Bunny as a base64-encoded
+    payload (Bunny's wire shape for this endpoint).
+    """
+
+    permission_classes = [IsAuthenticated, IsStaffUser]
+    parser_classes = []
+
+    ALLOWED_VTT = {"text/vtt", "text/plain", "application/octet-stream", ""}
+    MAX_BYTES = 1 * 1024 * 1024  # 1 MB — VTT is text, this is plenty
+    LANG_RE = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")
+
+    def get(self, request, guid: str):
+        get_object_or_404(BunnyVideo, guid=guid)
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            captions = bunny_api.list_bunny_captions(cfg, guid)
+        except bunny_api.BunnyAPIError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"captions": captions})
+
+    def post(self, request, guid: str):
+        get_object_or_404(BunnyVideo, guid=guid)
+        upload = request.FILES.get("vtt")
+        srclang = (request.data.get("srclang") or "").strip().lower()
+        label = (request.data.get("label") or "").strip()[:60]
+
+        if not upload:
+            return Response({"error": "Missing 'vtt' file."}, status=status.HTTP_400_BAD_REQUEST)
+        if not self.LANG_RE.match(srclang):
+            return Response(
+                {"error": "Language code must look like 'en' or 'pt-BR'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if upload.size and upload.size > self.MAX_BYTES:
+            return Response(
+                {"error": f"VTT file too large ({upload.size} bytes). Limit is {self.MAX_BYTES} bytes."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+        content_type = (upload.content_type or "").lower()
+        if content_type and content_type not in self.ALLOWED_VTT:
+            return Response(
+                {"error": f"Unsupported caption type ({content_type}). Upload a .vtt file."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            bunny_api.upload_bunny_caption(cfg, guid, srclang, label or srclang.upper(), upload.read())
+            captions = bunny_api.list_bunny_captions(cfg, guid)
+        except bunny_api.BunnyAPIError as exc:
+            log.error("[bunny:captions] upload_failed", extra={"guid": guid, "err": str(exc)})
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({"ok": True, "captions": captions})
+
+
+class CaptionDeleteView(APIView):
+    """``DELETE /videos/<guid>/captions/<srclang>`` — remove a caption."""
+
+    permission_classes = [IsAuthenticated, IsStaffUser]
+
+    def delete(self, request, guid: str, srclang: str):
+        get_object_or_404(BunnyVideo, guid=guid)
+        srclang = (srclang or "").strip().lower()
+        if not srclang:
+            return Response({"error": "Missing srclang"}, status=status.HTTP_400_BAD_REQUEST)
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            bunny_api.delete_bunny_caption(cfg, guid, srclang)
+            captions = bunny_api.list_bunny_captions(cfg, guid)
+        except bunny_api.BunnyAPIError as exc:
+            log.error("[bunny:captions] delete_failed", extra={"guid": guid, "err": str(exc)})
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"ok": True, "captions": captions})
+
+
+class TranscribeView(APIView):
+    """
+    ``POST /videos/<guid>/transcribe`` — kick off Bunny's auto-transcription.
+
+    Body: optional ``language`` (default ``en``). Async on Bunny's side —
+    the caller polls ``GET /captions`` to discover when the new track lands.
+    """
+
+    permission_classes = [IsAuthenticated, IsStaffUser]
+
+    LANG_RE = re.compile(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})?$")
+
+    def post(self, request, guid: str):
+        get_object_or_404(BunnyVideo, guid=guid)
+        language = (request.data.get("language") or "en").strip().lower()
+        force = bool(request.data.get("force"))
+        if not self.LANG_RE.match(language):
+            return Response(
+                {"error": "Language code must look like 'en' or 'pt-BR'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            bunny_api.transcribe_bunny_video(cfg, guid, language=language, force=force)
+        except bunny_api.BunnyAPIError as exc:
+            log.error("[bunny:transcribe] failed", extra={"guid": guid, "err": str(exc)})
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"ok": True, "language": language})
+
+
+class ChaptersView(APIView):
+    """
+    ``GET /videos/<guid>/chapters`` — return current chapter list.
+    ``PUT /videos/<guid>/chapters`` — replace chapter list.
+
+    PUT body: ``{ chapters: [{ title, start, end }, ...] }`` with seconds
+    for ``start`` and ``end``. Validation enforces non-negative integers and
+    monotonic order so authors can't ship overlapping markers that confuse
+    Bunny's player.
+    """
+
+    permission_classes = [IsAuthenticated, IsStaffUser]
+
+    MAX_CHAPTERS = 50
+    MAX_TITLE = 120
+
+    def get(self, request, guid: str):
+        get_object_or_404(BunnyVideo, guid=guid)
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            chapters = bunny_api.get_bunny_chapters(cfg, guid)
+        except bunny_api.BunnyAPIError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+        return Response({"chapters": chapters})
+
+    def put(self, request, guid: str):
+        row = get_object_or_404(BunnyVideo, guid=guid)
+        raw = request.data.get("chapters")
+        if not isinstance(raw, list):
+            return Response(
+                {"error": "Body must include a 'chapters' array."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(raw) > self.MAX_CHAPTERS:
+            return Response(
+                {"error": f"Too many chapters ({len(raw)}). Max is {self.MAX_CHAPTERS}."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate + normalize. Sort by start time, derive `end` for chapters
+        # missing one by using the next chapter's `start` (Bunny will accept
+        # this; matches how the player visually segments).
+        cleaned = []
+        for i, ch in enumerate(raw):
+            if not isinstance(ch, dict):
+                return Response(
+                    {"error": f"Chapter {i} is not an object."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            title = str(ch.get("title") or "").strip()[: self.MAX_TITLE]
+            try:
+                start = max(0, int(ch.get("start") or 0))
+                end = max(0, int(ch.get("end") or 0))
+            except (TypeError, ValueError):
+                return Response(
+                    {"error": f"Chapter {i} has non-numeric start/end."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not title:
+                return Response(
+                    {"error": f"Chapter {i} needs a title."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if end and end < start:
+                return Response(
+                    {"error": f"Chapter {i} has end < start."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            cleaned.append({"title": title, "start": start, "end": end})
+
+        cleaned.sort(key=lambda c: c["start"])
+
+        # Backfill missing/zero ends with the next chapter's start (or video
+        # duration if known) so Bunny's player can paint the timeline.
+        duration = row.duration_sec or 0
+        for i, ch in enumerate(cleaned):
+            if not ch["end"]:
+                if i + 1 < len(cleaned):
+                    ch["end"] = cleaned[i + 1]["start"]
+                elif duration:
+                    ch["end"] = duration
+                else:
+                    # Best guess — 60s segment if we have neither.
+                    ch["end"] = ch["start"] + 60
+
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+        try:
+            bunny_api.set_bunny_chapters(cfg, guid, cleaned)
+        except bunny_api.BunnyAPIError as exc:
+            log.error("[bunny:chapters] save_failed", extra={"guid": guid, "err": str(exc)})
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({"ok": True, "chapters": cleaned})
 
 
 class ThumbnailView(APIView):
