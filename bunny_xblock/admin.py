@@ -151,12 +151,55 @@ class BunnyConfigurationAdmin(admin.ModelAdmin):
             return mark_safe(
                 "<em>Save credentials first; the URL appears here.</em>"
             )
-        # request is not available in readonly_fields — emit a relative URL
-        # plus a JS one-click copy hook so admins can grab it easily.
         path = f"/api/xblock_bunny/webhook/{obj.webhook_secret}"
+
+        # Open edX always sets LMS_ROOT_URL in lms.env.json / cms.env.json
+        # (Tutor wires it from LMS_HOST). The admin runs in CMS, so we can't
+        # use request.get_host() to know the LMS — we depend on the setting.
+        # Fallbacks: SITE_NAME (legacy), then the Django Sites framework's
+        # current Site, then a placeholder for dev shells that don't set
+        # any of these.
+        lms_base = getattr(settings, "LMS_ROOT_URL", "") or ""
+        if not lms_base:
+            site_name = getattr(settings, "SITE_NAME", "") or ""
+            if site_name:
+                lms_base = (
+                    site_name if site_name.startswith(("http://", "https://"))
+                    else f"https://{site_name}"
+                )
+        if not lms_base:
+            try:
+                from django.contrib.sites.shortcuts import get_current_site
+                lms_base = f"https://{get_current_site(None).domain}"
+            except Exception:
+                lms_base = ""
+        full_url = (lms_base.rstrip("/") + path) if lms_base else path
+
+        # Clipboard copy without leaving Django admin. `e.preventDefault()` so
+        # the surrounding form doesn't try to submit on the click.
+        button_js = (
+            "var u=this.previousElementSibling.textContent;"
+            "navigator.clipboard&&navigator.clipboard.writeText(u);"
+            "this.textContent='Copied';"
+            "setTimeout(function(b){b.textContent='Copy';}.bind(null,this),1500);"
+            "event.preventDefault();return false;"
+        )
         return mark_safe(
-            f'<code style="user-select:all">&lt;your-lms-host&gt;{path}</code> '
-            f'<small>(prepend your LMS scheme + host)</small>'
+            f'<code style="user-select:all;display:inline-block;'
+            f'padding:6px 10px;background:#f5f5f5;border-radius:6px;'
+            f'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
+            f'font-size:13px">{full_url}</code> '
+            f'<button type="button" style="margin-left:8px;padding:4px 10px;'
+            f'cursor:pointer" onclick="{button_js}">Copy</button>'
+            + (
+                ''
+                if lms_base
+                else '<br><small style="color:#a04;">'
+                     'Heads up: LMS_ROOT_URL is not configured on this stack — '
+                     'the URL above is missing the scheme+host. Prepend your '
+                     'LMS host before pasting into Bunny.'
+                     '</small>'
+            )
         )
 
     webhook_url_display.short_description = "Webhook URL"
