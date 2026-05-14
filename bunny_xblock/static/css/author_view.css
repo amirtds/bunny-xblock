@@ -22,6 +22,31 @@
  */
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
+/* ----- Hide Studio's pencil edit button on our component ---------------
+ *
+ * The XBlock's inline `author_view` covers all editing, so Studio's modal
+ * pencil is redundant. Removing `studio_view` + `editable_fields` on the
+ * Python side isn't enough — Studio's chrome JS shows the pencil
+ * unconditionally for any block whose base class implements `studio_view`,
+ * and the XBlock base class always does.
+ *
+ * `:has()` lets us walk from our content node up to Studio's chrome
+ * wrapper and target the sibling action list. Supported in all evergreen
+ * browsers (Chrome 105+, Safari 15.4+, Firefox 121+). We try every
+ * wrapper class shape Studio uses across recent releases so this stays
+ * resilient across Sumac → Teak → Ulmo.
+ *
+ * Scoped to our own block via the `:has(.bunny-xblock--author)` clause
+ * so we don't strip the pencil off neighbouring XBlocks on the same unit.
+ */
+.studio-xblock-wrapper:has(.bunny-xblock--author) .action-edit,
+.wrapper-xblock:has(.bunny-xblock--author) .action-edit,
+.xblock-component:has(.bunny-xblock--author) .action-edit,
+.studio-xblock-wrapper:has(.bunny-xblock--author) .edit-button,
+.wrapper-xblock:has(.bunny-xblock--author) .edit-button {
+  display: none !important;
+}
+
 .bunny-xblock--author {
   /* ----- Design tokens ----- */
   --bunny-paper: #FBFAF8;
