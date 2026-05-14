@@ -2,91 +2,156 @@
      data-state="{state}"
      data-embed-url="{embed_url}">
 
-  <!-- State: empty (no video chosen yet) -->
+  <div class="bunny-xblock__lockup" aria-hidden="true">
+    <span class="bunny-xblock__lockup-dot"></span>
+    <span>Bunny Stream</span>
+  </div>
+
+  <!-- ─── State: empty ──────────────────────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--empty" data-panel="empty">
     <div class="bunny-xblock__dropzone"
          data-bunny-dropzone
-         aria-label="Drop a video here or use the Choose video button">
+         role="button"
+         tabindex="0"
+         aria-label="Drop a video file here or activate to choose one">
       <div class="bunny-xblock__dropzone-inner">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-          <path d="M12 16v-8m0 0-3 3m3-3 3 3" stroke-linecap="round" stroke-linejoin="round" />
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-        </svg>
-        <p class="bunny-xblock__dropzone-headline">Drop a video to upload to Bunny</p>
-        <p class="bunny-xblock__dropzone-sub">MP4, MOV, MKV — uploaded directly, server never sees the bytes.</p>
+        <span class="bunny-xblock__dropzone-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4" />
+            <path d="m6 10 6-6 6 6" />
+            <path d="M4 20h16" />
+          </svg>
+        </span>
+        <p class="bunny-xblock__dropzone-headline">Drop a video to upload</p>
+        <p class="bunny-xblock__dropzone-sub">
+          Direct browser-to-Bunny upload. Your Open&nbsp;edX server never sees the bytes.
+        </p>
         <button type="button" class="bunny-xblock__btn bunny-xblock__btn--primary" data-action="choose">
           Choose video
         </button>
         <input type="file" accept="video/*" class="bunny-xblock__file" data-bunny-file hidden />
+        <div class="bunny-xblock__dropzone-formats" aria-hidden="true">
+          <span class="bunny-xblock__format-pill">MP4</span>
+          <span class="bunny-xblock__format-pill">MOV</span>
+          <span class="bunny-xblock__format-pill">MKV</span>
+          <span class="bunny-xblock__format-pill">WebM</span>
+        </div>
       </div>
     </div>
-    <p class="bunny-xblock__error" data-bunny-error hidden></p>
+    <p class="bunny-xblock__error" data-bunny-error hidden role="alert"></p>
   </section>
 
-  <!-- State: uploading (TUS in progress; JS-managed) -->
+  <!-- ─── State: uploading (JS-managed) ─────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--uploading" data-panel="uploading" hidden>
     <div class="bunny-xblock__progress">
-      <p class="bunny-xblock__progress-headline">
-        Uploading <span data-bunny-filename>video</span>
+      <div class="bunny-xblock__progress-headline">
+        <span class="bunny-xblock__progress-label">
+          Uploading <span class="bunny-xblock__progress-filename" data-bunny-filename>video</span>
+        </span>
         <span class="bunny-xblock__progress-percent" data-bunny-pct>0%</span>
-      </p>
-      <progress class="bunny-xblock__bar" value="0" max="100" data-bunny-progress></progress>
+      </div>
+      <progress class="bunny-xblock__bar" value="0" max="100" data-bunny-progress
+                aria-label="Upload progress"></progress>
       <button type="button" class="bunny-xblock__btn bunny-xblock__btn--ghost" data-action="cancel-upload">
-        Cancel
+        Cancel upload
       </button>
     </div>
   </section>
 
-  <!-- State: processing (uploaded, Bunny encoding) -->
+  <!-- ─── State: processing ─────────────────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--processing" data-panel="processing" hidden>
-    <div class="bunny-xblock__processing">
-      <span class="bunny-xblock__spinner" aria-hidden="true"></span>
-      <div>
-        <p class="bunny-xblock__processing-headline">Processing on Bunny…</p>
-        <p class="bunny-xblock__processing-sub">Encoding usually takes &lt; 2 min. Status updates automatically.</p>
-      </div>
-    </div>
-    <div class="bunny-xblock__field">
+    <div class="bunny-xblock__field bunny-xblock__field--first">
       <label class="bunny-xblock__label" for="bunny-title-processing">Title</label>
-      <input id="bunny-title-processing" class="bunny-xblock__input" type="text" value="{title}" data-bunny-title />
+      <input id="bunny-title-processing"
+             class="bunny-xblock__input"
+             type="text"
+             value="{title}"
+             placeholder="Untitled video"
+             data-bunny-title />
+    </div>
+    <div class="bunny-xblock__processing" role="status" aria-live="polite">
+      <span class="bunny-xblock__pulse" aria-hidden="true"></span>
+      <div class="bunny-xblock__processing-text">
+        <p class="bunny-xblock__processing-headline">Bunny is encoding your video</p>
+        <p class="bunny-xblock__processing-sub">Usually under two minutes. This view updates automatically — no refresh needed.</p>
+      </div>
     </div>
   </section>
 
-  <!-- State: ready (player + manage) -->
+  <!-- ─── State: ready ──────────────────────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--ready" data-panel="ready" hidden>
+    <div class="bunny-xblock__field bunny-xblock__field--first">
+      <label class="bunny-xblock__label" for="bunny-title-ready">Title</label>
+      <input id="bunny-title-ready"
+             class="bunny-xblock__input"
+             type="text"
+             value="{title}"
+             placeholder="Untitled video"
+             data-bunny-title />
+    </div>
     <div class="bunny-xblock__player">
       <iframe class="bunny-xblock__iframe"
               src="{embed_url}"
               title="{title}"
+              loading="lazy"
               allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
               allowfullscreen></iframe>
     </div>
-    <div class="bunny-xblock__field">
-      <label class="bunny-xblock__label" for="bunny-title-ready">Title</label>
-      <input id="bunny-title-ready" class="bunny-xblock__input" type="text" value="{title}" data-bunny-title />
+    <div class="bunny-xblock__meta">
+      <span class="bunny-xblock__status-pill bunny-xblock__status-pill--ready">Ready</span>
+      <span class="bunny-xblock__meta-item" data-bunny-duration hidden>
+        <span class="bunny-xblock__meta-label">Duration</span>
+        <span data-bunny-duration-value>—</span>
+      </span>
+      <span class="bunny-xblock__meta-item">
+        <span class="bunny-xblock__meta-label">GUID</span>
+        <span data-bunny-guid>—</span>
+      </span>
     </div>
     <div class="bunny-xblock__actions">
       <button type="button" class="bunny-xblock__btn" data-action="replace">Replace video</button>
+      <span class="bunny-xblock__actions-spacer"></span>
       <button type="button" class="bunny-xblock__btn bunny-xblock__btn--danger" data-action="delete">
         Delete from Bunny
       </button>
     </div>
   </section>
 
-  <!-- State: failed -->
+  <!-- ─── State: failed ─────────────────────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--failed" data-panel="failed" hidden>
-    <div class="bunny-xblock__failed">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 8v4m0 4h.01" stroke-linecap="round" />
-      </svg>
+    <div class="bunny-xblock__failed" role="alert">
+      <span class="bunny-xblock__failed-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4m0 4h.01" stroke-linecap="round" />
+        </svg>
+      </span>
       <div>
-        <p class="bunny-xblock__failed-headline">Bunny couldn't process this video.</p>
-        <p class="bunny-xblock__failed-sub" data-bunny-fail-message>Please try uploading again or contact support.</p>
+        <p class="bunny-xblock__failed-headline">Bunny couldn't process this video</p>
+        <p class="bunny-xblock__failed-sub" data-bunny-fail-message>
+          Try uploading a different file, or check the Bunny Stream dashboard for encoding error details.
+        </p>
       </div>
     </div>
     <div class="bunny-xblock__actions">
       <button type="button" class="bunny-xblock__btn" data-action="replace">Try another file</button>
     </div>
   </section>
+
+  <!-- ─── Confirm modal (delete) ────────────────────────────────────── -->
+  <div class="bunny-xblock__modal" data-bunny-modal role="dialog" aria-modal="true" aria-labelledby="bunny-modal-title">
+    <div class="bunny-xblock__modal-card">
+      <h3 class="bunny-xblock__modal-title" id="bunny-modal-title">Delete from Bunny?</h3>
+      <p class="bunny-xblock__modal-body">
+        This permanently removes the video from your Bunny Stream library. The block, and any
+        other course unit that embeds the same video, will no longer play it. This cannot be undone.
+      </p>
+      <div class="bunny-xblock__modal-actions">
+        <button type="button" class="bunny-xblock__btn" data-action="modal-cancel">Cancel</button>
+        <button type="button" class="bunny-xblock__btn bunny-xblock__btn--danger" data-action="modal-confirm">
+          Delete permanently
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

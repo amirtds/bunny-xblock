@@ -14,6 +14,7 @@ secrets itself, only video identifiers + display state.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
@@ -89,14 +90,20 @@ class BunnyVideoXBlock(XBlock):
                     extra={"guid": self.guid, "err": str(exc)},
                 )
 
-        html = _resource("templates/bunny_xblock/student_view.html").format(
+        # HTML-escape any user-controlled string before substitution. The
+        # template uses str.format() (no jinja escaping) so a title containing
+        # an unescaped `"` would break the surrounding attribute.
+        safe_title = html.escape(self.title or "Bunny video", quote=True)
+        safe_poster = html.escape(self.thumbnail_url or "", quote=True)
+        safe_embed = html.escape(embed_url, quote=True)
+        rendered = _resource("templates/bunny_xblock/student_view.html").format(
             self=self,
             has_video=bool(self.guid and self.library_id),
-            poster_url=self.thumbnail_url or "",
-            embed_url=embed_url,
-            title=self.title or "Bunny video",
+            poster_url=safe_poster,
+            embed_url=safe_embed,
+            title=safe_title,
         )
-        fragment = Fragment(html)
+        fragment = Fragment(rendered)
         fragment.add_css(_resource("static/css/student_view.css"))
         fragment.add_javascript(_resource("static/js/student_view.js"))
         fragment.initialize_js(
@@ -129,14 +136,19 @@ class BunnyVideoXBlock(XBlock):
                     extra={"guid": self.guid, "err": str(exc)},
                 )
 
-        html = _resource("templates/bunny_xblock/author_view.html").format(
+        # Same escape discipline as the student view above — substitution is
+        # str.format() so values that flow into HTML attributes must be safe.
+        safe_title = html.escape(self.title or "", quote=True)
+        safe_poster = html.escape(self.thumbnail_url or "", quote=True)
+        safe_embed = html.escape(embed_url, quote=True)
+        rendered = _resource("templates/bunny_xblock/author_view.html").format(
             self=self,
             state=state,
-            poster_url=self.thumbnail_url or "",
-            embed_url=embed_url,
-            title=self.title or "",
+            poster_url=safe_poster,
+            embed_url=safe_embed,
+            title=safe_title,
         )
-        fragment = Fragment(html)
+        fragment = Fragment(rendered)
         fragment.add_css(_resource("static/css/author_view.css"))
         fragment.add_javascript(_resource("static/js/vendor/tus.min.js"))
         fragment.add_javascript(_resource("static/js/author_view.js"))
@@ -182,7 +194,14 @@ class BunnyVideoXBlock(XBlock):
 
         self.guid = guid
         self.library_id = library_id
-        self.title = (data.get("title") or self.title or "")[:250]
+        new_title = (data.get("title") or self.title or "")[:250]
+        self.title = new_title
+        # Mirror the title into display_name so Studio's outline shows the
+        # video's actual name (otherwise every block reads "Bunny Video"
+        # forever). Only overwrite the default — respect any explicit
+        # display name the author already set in Settings.
+        if new_title and self.display_name in ("Bunny Video", ""):
+            self.display_name = new_title
         if isinstance(data.get("duration_sec"), int):
             self.duration_sec = data["duration_sec"]
         self.thumbnail_url = (data.get("thumbnail_url") or "")[:1000]
@@ -205,6 +224,10 @@ class BunnyVideoXBlock(XBlock):
     def update_title(self, data, suffix=""):
         title = (data.get("title") or "").strip()[:250]
         self.title = title
+        # Same outline-sync behaviour as set_video: track the title in
+        # display_name so the Studio outline doesn't stay generic.
+        if title and self.display_name in ("Bunny Video", ""):
+            self.display_name = title
         return {"ok": True, "title": title}
 
     @XBlock.json_handler

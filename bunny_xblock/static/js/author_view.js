@@ -2,22 +2,20 @@
  * BunnyAuthorView — Studio-side inline authoring UI.
  *
  * State machine driven by the XBlock's `status` field (server-rendered) plus
- * JS-driven transitions for upload progress. Closely mirrors the Cubite
- * EditorJS plugin in `app/plugins/bunny-stream/index.js`, minus the library
- * picker (v0.1 ships single-video-per-block per the user spec).
+ * JS-driven transitions for upload progress. Mirrors the Cubite EditorJS
+ * plugin in shape; v0.1 ships single-video-per-block (no library picker).
  *
  *   empty  ──drop/click──▶  uploading ──TUS success──▶  processing
  *                                                    │
- *                                                    ▼
- *                                       (poll until status changes)
- *                                                    │
- *                                                    ▼
+ *                                                    ▼ (poll loop)
  *                                                  ready  ◀── webhook
  *                                                    │
  *                                       failed (rare; from poll/webhook)
  *
- * Tus.Upload is loaded from the bundled `vendor/tus.min.js` so we don't depend
- * on any CDN at run time. The package's vendor script downloads it at build.
+ * Defensive panel hiding: each transition sets `hidden` AND toggles inline
+ * `style.display`. The CSS reinstates `[hidden] { display: none !important }`
+ * but if Studio injects any global rule that overrides the attribute again
+ * (it has happened in the past), the inline style is the fallback.
  */
 
 /* global tus */
@@ -45,6 +43,11 @@ function BunnyAuthorView(runtime, element, config) {
   var failMessage = root.querySelector("[data-bunny-fail-message]");
   var titleInputs = root.querySelectorAll("[data-bunny-title]");
 
+  var modal = root.querySelector("[data-bunny-modal]");
+  var guidLabel = root.querySelector("[data-bunny-guid]");
+  var durationContainer = root.querySelector("[data-bunny-duration]");
+  var durationValue = root.querySelector("[data-bunny-duration-value]");
+
   // ---- State ----------------------------------------------------------------------
 
   var state = {
@@ -52,8 +55,9 @@ function BunnyAuthorView(runtime, element, config) {
     libraryId: config.libraryId || "",
     title: config.title || "",
     status: config.status || (config.guid ? "encoding" : ""),
-    currentUpload: null, // active tus.Upload instance
-    pollAbort: null, // AbortController for current poll loop
+    durationSec: 0,
+    currentUpload: null,
+    pollAbort: null,
   };
 
   var endpoints = config.endpoints || {};
@@ -62,13 +66,20 @@ function BunnyAuthorView(runtime, element, config) {
   var updateTitleUrl = runtime.handlerUrl(element, "update_title");
   var clearVideoUrl = runtime.handlerUrl(element, "clear_video");
 
-  // ---- Panel switching ------------------------------------------------------------
+  // ---- Panel switching (defensive: attribute + inline style) ----------------------
 
   function show(panel) {
     Object.keys(panels).forEach(function (key) {
-      if (panels[key]) panels[key].hidden = key !== panel;
+      if (!panels[key]) return;
+      var match = key === panel;
+      panels[key].hidden = !match;
+      // Belt-and-suspenders: inline display ensures we hide even if some
+      // upstream CSS overrides `[hidden]`. The v0.1 bug was exactly this
+      // (a `display: block` rule outweighing the UA `[hidden]` rule).
+      panels[key].style.display = match ? "" : "none";
     });
     root.setAttribute("data-state", panel);
+
     if (panel === "processing" && state.guid) startPolling();
     if (panel !== "processing" && state.pollAbort) {
       state.pollAbort.abort();
@@ -80,6 +91,7 @@ function BunnyAuthorView(runtime, element, config) {
     if (!errorBox) return;
     errorBox.textContent = msg;
     errorBox.hidden = !msg;
+    errorBox.style.display = msg ? "" : "none";
   }
 
   // ---- Networking helpers ---------------------------------------------------------
@@ -98,14 +110,38 @@ function BunnyAuthorView(runtime, element, config) {
     return fetch(url, { credentials: "same-origin", signal: signal });
   }
 
-  // ---- Upload flow ----------------------------------------------------------------
+  // ---- Metadata rendering --------------------------------------------------------
+
+  function formatDuration(sec) {
+    if (!sec || sec <= 0) return "";
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function syncReadyMeta() {
+    if (guidLabel) guidLabel.textContent = state.guid ? state.guid.slice(0, 8) + "…" : "—";
+    if (durationContainer && durationValue) {
+      var formatted = formatDuration(state.durationSec);
+      if (formatted) {
+        durationValue.textContent = formatted;
+        durationContainer.hidden = false;
+        durationContainer.style.display = "";
+      } else {
+        durationContainer.hidden = true;
+        durationContainer.style.display = "none";
+      }
+    }
+  }
+
+  // ---- Upload flow ---------------------------------------------------------------
 
   function startUpload(file) {
     if (!file) return;
     showError("");
-    filenameLabel.textContent = file.name || "video";
-    progressBar.value = 0;
-    progressPct.textContent = "0%";
+    if (filenameLabel) filenameLabel.textContent = file.name || "video";
+    if (progressBar) progressBar.value = 0;
+    if (progressPct) progressPct.textContent = "0%";
     show("uploading");
 
     postJson(endpoints.uploadToken, { title: file.name || state.title || "Untitled video" })
@@ -135,8 +171,8 @@ function BunnyAuthorView(runtime, element, config) {
           },
           onProgress: function (bytesUploaded, bytesTotal) {
             var pct = bytesTotal > 0 ? Math.round((bytesUploaded / bytesTotal) * 100) : 0;
-            progressBar.value = pct;
-            progressPct.textContent = pct + "%";
+            if (progressBar) progressBar.value = pct;
+            if (progressPct) progressPct.textContent = pct + "%";
           },
           onSuccess: function () {
             finalizeUpload(token.guid, token.library_id);
@@ -156,6 +192,7 @@ function BunnyAuthorView(runtime, element, config) {
     state.guid = guid;
     state.libraryId = libraryId;
     state.currentUpload = null;
+    syncReadyMeta();
     show("processing");
 
     postJson(endpoints.finalize.replace("{guid}", encodeURIComponent(guid)))
@@ -165,7 +202,9 @@ function BunnyAuthorView(runtime, element, config) {
       .then(function (meta) {
         state.title = meta.title || state.title;
         state.status = meta.status || "encoding";
+        state.durationSec = meta.duration_sec || 0;
         setTitleInputs(state.title);
+        syncReadyMeta();
         return postJson(setVideoUrl, {
           guid: meta.guid,
           library_id: meta.library_id,
@@ -176,13 +215,12 @@ function BunnyAuthorView(runtime, element, config) {
         });
       })
       .then(function () {
-        // If Bunny is already done by the time we finalize, jump straight to ready.
         if (state.status === "ready") flipToReady();
         else show("processing");
       })
       .catch(function (err) {
         console.error("[bunny:author] finalize chain failed", err);
-        showError("Upload finished but Cubite couldn't reconcile the metadata.");
+        showError("Upload finished but couldn't reconcile the metadata.");
         show("empty");
       });
   }
@@ -195,7 +233,7 @@ function BunnyAuthorView(runtime, element, config) {
     show("empty");
   }
 
-  // ---- Polling --------------------------------------------------------------------
+  // ---- Polling -------------------------------------------------------------------
 
   function startPolling() {
     if (state.pollAbort) state.pollAbort.abort();
@@ -212,7 +250,9 @@ function BunnyAuthorView(runtime, element, config) {
         .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error("video detail " + res.status)); })
         .then(function (meta) {
           if (signal.aborted) return;
-          // Sync any change back to the XBlock so a Studio reload reflects it.
+          if (typeof meta.duration_sec === "number" && meta.duration_sec > 0) {
+            state.durationSec = meta.duration_sec;
+          }
           if (meta.status !== state.status) {
             state.status = meta.status;
             postJson(updateStatusUrl, {
@@ -221,13 +261,9 @@ function BunnyAuthorView(runtime, element, config) {
               thumbnail_url: meta.thumbnail_url || "",
             }).catch(function () { /* fire and forget */ });
           }
-          if (meta.status === "ready") {
-            flipToReady();
-          } else if (meta.status === "failed") {
-            flipToFailed();
-          } else {
-            setTimeout(tick, INTERVAL_MS);
-          }
+          if (meta.status === "ready") flipToReady();
+          else if (meta.status === "failed") flipToFailed();
+          else setTimeout(tick, INTERVAL_MS);
         })
         .catch(function (err) {
           if (signal.aborted) return;
@@ -238,16 +274,22 @@ function BunnyAuthorView(runtime, element, config) {
     tick();
   }
 
-  // ---- State flips ----------------------------------------------------------------
+  // ---- State flips ---------------------------------------------------------------
 
   function flipToReady() {
-    // Need a fresh signed iframe URL. The server-rendered one is only present
-    // when the block initially loaded in `ready` state.
+    syncReadyMeta();
+    // If the iframe was already server-rendered with a signed URL, reuse it.
+    var iframe = panels.ready && panels.ready.querySelector(".bunny-xblock__iframe");
+    var existingSrc = iframe ? iframe.getAttribute("src") : "";
+    if (existingSrc && existingSrc.indexOf("token=") !== -1) {
+      show("ready");
+      return;
+    }
+    // Otherwise fetch a fresh signed URL.
     var url = endpoints.embedUrl + "?guid=" + encodeURIComponent(state.guid);
     getJson(url)
       .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error("embed-url " + res.status)); })
       .then(function (data) {
-        var iframe = panels.ready.querySelector(".bunny-xblock__iframe");
         if (iframe && data.url) {
           iframe.src = data.url;
           iframe.setAttribute("title", state.title || "Bunny video");
@@ -256,7 +298,7 @@ function BunnyAuthorView(runtime, element, config) {
       })
       .catch(function (err) {
         console.error("[bunny:author] embed-url fetch failed", err);
-        show("ready"); // still show the panel; iframe stays blank
+        show("ready");
       });
   }
 
@@ -264,29 +306,41 @@ function BunnyAuthorView(runtime, element, config) {
     show("failed");
   }
 
-  // ---- Replace / delete -----------------------------------------------------------
+  // ---- Confirm modal (replaces window.confirm) ----------------------------------
+
+  function openModal() {
+    if (!modal) return;
+    modal.setAttribute("data-open", "true");
+    var confirmBtn = modal.querySelector('[data-action="modal-confirm"]');
+    if (confirmBtn) confirmBtn.focus();
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.removeAttribute("data-open");
+  }
+
+  // ---- Replace / delete ---------------------------------------------------------
 
   function replaceVideo() {
-    // Don't delete from Bunny — author may want to keep the original. Just
-    // detach this block from it. The detached video remains in the library.
     state.guid = "";
     state.libraryId = "";
     state.status = "";
     state.title = "";
+    state.durationSec = 0;
     setTitleInputs("");
+    syncReadyMeta();
     postJson(clearVideoUrl).catch(function () { /* ignore */ });
     show("empty");
   }
 
   function deleteVideo() {
     if (!state.guid) return;
-    if (!window.confirm("Delete this video from Bunny permanently? This cannot be undone.")) return;
+    closeModal();
     var url = endpoints.videoDetail.replace("{guid}", encodeURIComponent(state.guid));
     fetch(url, { method: "DELETE", credentials: "same-origin" })
       .then(function (res) {
-        if (!res.ok && res.status !== 404) {
-          throw new Error("delete " + res.status);
-        }
+        if (!res.ok && res.status !== 404) throw new Error("delete " + res.status);
         return postJson(clearVideoUrl);
       })
       .then(function () {
@@ -294,7 +348,9 @@ function BunnyAuthorView(runtime, element, config) {
         state.libraryId = "";
         state.status = "";
         state.title = "";
+        state.durationSec = 0;
         setTitleInputs("");
+        syncReadyMeta();
         show("empty");
       })
       .catch(function (err) {
@@ -303,41 +359,73 @@ function BunnyAuthorView(runtime, element, config) {
       });
   }
 
-  // ---- Title sync -----------------------------------------------------------------
+  // ---- Title sync ---------------------------------------------------------------
 
   function setTitleInputs(value) {
     titleInputs.forEach(function (input) { input.value = value || ""; });
   }
 
-  function onTitleBlur(e) {
-    var newTitle = (e.target.value || "").trim().slice(0, 250);
+  function commitTitle(newTitle) {
     if (newTitle === state.title) return;
     state.title = newTitle;
     setTitleInputs(newTitle);
     postJson(updateTitleUrl, { title: newTitle }).catch(function () { /* ignore */ });
   }
 
-  // ---- Event wiring ---------------------------------------------------------------
+  function onTitleBlur(e) {
+    var newTitle = (e.target.value || "").trim().slice(0, 250);
+    commitTitle(newTitle);
+  }
+
+  // Debounced commit on input so authors who don't blur before Save don't
+  // lose their title. 600 ms is long enough that we're not chattering on
+  // every keystroke, short enough that Save catches the latest value.
+  var titleDebounce = null;
+  function onTitleInput(e) {
+    var value = (e.target.value || "").slice(0, 250);
+    setTitleInputs(value);
+    if (titleDebounce) clearTimeout(titleDebounce);
+    titleDebounce = setTimeout(function () {
+      commitTitle(value.trim());
+    }, 600);
+  }
+
+  // ---- Event wiring -------------------------------------------------------------
 
   root.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-action]");
     if (!btn) return;
     var action = btn.getAttribute("data-action");
-    if (action === "choose") fileInput.click();
-    else if (action === "cancel-upload") cancelUpload();
-    else if (action === "replace") replaceVideo();
-    else if (action === "delete") deleteVideo();
+    switch (action) {
+      case "choose": fileInput && fileInput.click(); break;
+      case "cancel-upload": cancelUpload(); break;
+      case "replace": replaceVideo(); break;
+      case "delete": openModal(); break;
+      case "modal-cancel": closeModal(); break;
+      case "modal-confirm": deleteVideo(); break;
+    }
   });
+
+  // Modal: close on backdrop click + Escape.
+  if (modal) {
+    modal.addEventListener("click", function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && modal.getAttribute("data-open") === "true") closeModal();
+    });
+  }
 
   if (fileInput) {
     fileInput.addEventListener("change", function (e) {
       var file = e.target.files && e.target.files[0];
       if (file) startUpload(file);
-      e.target.value = ""; // reset so the same file can be reselected later
+      e.target.value = "";
     });
   }
 
   if (dropzone) {
+    // Mouse-driven drag + drop.
     ["dragover", "dragenter"].forEach(function (ev) {
       dropzone.addEventListener(ev, function (e) {
         e.preventDefault();
@@ -354,13 +442,24 @@ function BunnyAuthorView(runtime, element, config) {
       var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (file) startUpload(file);
     });
+    // Keyboard parity: Enter/Space on the dropzone opens the file picker so
+    // it isn't purely a mouse interaction.
+    dropzone.addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && fileInput) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
   }
 
   titleInputs.forEach(function (input) {
+    input.addEventListener("input", onTitleInput);
     input.addEventListener("blur", onTitleBlur);
   });
 
-  // ---- Initial state --------------------------------------------------------------
+  // ---- Initial render -----------------------------------------------------------
+
+  syncReadyMeta();
 
   if (state.guid && state.status && state.status !== "ready" && state.status !== "failed") {
     show("processing");

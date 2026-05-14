@@ -1,243 +1,588 @@
 /*
- * Studio-side author view styles. Scoped under `.bunny-xblock--author` so
- * they don't bleed into the LMS player or other XBlocks on the unit page.
+ * Bunny.net Stream XBlock — Studio author view.
+ *
+ * Aesthetic: editorial / publishing-tool. Cream paper, ink type, single warm
+ * rust accent. Distinct against Studio's white-and-blue chrome without
+ * shouting. All styles scoped under `.bunny-xblock--author`.
+ *
+ * Note on `[hidden]`: the browser's UA rule `[hidden] { display: none }` has
+ * specificity (0,1,0). Any `display:` we write on the same element has to
+ * either avoid the panel, or pair with an explicit `[hidden]` override —
+ * otherwise the HTML `hidden` attribute silently breaks. v0.1 shipped with
+ * exactly that bug; the rule below is the explicit reinstatement.
  */
 
 .bunny-xblock--author {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  border: 1px solid #e0e3e7;
-  border-radius: 12px;
-  padding: 1.25rem;
-  background: #fff;
+  /* Design tokens — kept on the root so any nested rule can read them
+     without re-declaring, and so a v0.2 dark mode is one block away. */
+  --bunny-paper: #FBFAF8;
+  --bunny-ink: #14130F;
+  --bunny-muted: #6A6353;
+  --bunny-line: #E8E2D6;
+  --bunny-line-strong: #D9D2C2;
+  --bunny-surface: #F4F0E7;
+  --bunny-accent: #C2410C;
+  --bunny-accent-strong: #9A330A;
+  --bunny-accent-soft: #FED7AA;
+  --bunny-success: #15803D;
+  --bunny-success-soft: #DCFCE7;
+  --bunny-error: #B91C1C;
+  --bunny-error-soft: #FEE2E2;
+
+  --bunny-font-sans:
+    ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "SF Pro Display", "Segoe UI Variable Display", "Inter", system-ui, sans-serif;
+  --bunny-font-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+
+  font-family: var(--bunny-font-sans);
+  font-feature-settings: "ss01", "cv11";
+  color: var(--bunny-ink);
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line);
+  border-radius: 14px;
+  padding: 1.5rem 1.5rem 1.25rem;
   margin: 1rem 0;
+  box-shadow: 0 1px 0 rgba(20, 19, 15, 0.02), 0 8px 24px -16px rgba(20, 19, 15, 0.06);
+  /* Defensive reset: Studio occasionally injects a `line-height: 1.4` that
+     truncates the cap-line on our display-weight text. */
+  line-height: 1.5;
 }
+
+/* -- Box-sizing inside the block (Studio's reset isn't consistent) -- */
+.bunny-xblock--author *,
+.bunny-xblock--author *::before,
+.bunny-xblock--author *::after {
+  box-sizing: border-box;
+}
+
+/* -- Panel base + reinstated [hidden] override (THE bug fix) ----------- */
 
 .bunny-xblock--author .bunny-xblock__panel {
   display: block;
 }
+.bunny-xblock--author .bunny-xblock__panel[hidden] {
+  display: none !important;
+}
 
-/* ---- Empty state -------------------------------------------------------- */
+/* -- Brand lockup (top-left of every state) --------------------------- */
+
+.bunny-xblock--author .bunny-xblock__lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__lockup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bunny-accent);
+  flex-shrink: 0;
+}
+
+/* ----- Empty state ---------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__dropzone {
-  border: 2px dashed #cbd2da;
-  border-radius: 10px;
-  padding: 2.5rem 1.5rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 3.5rem 2rem;
+  background:
+    radial-gradient(ellipse at center,
+      rgba(194, 65, 12, 0.04) 0%,
+      transparent 70%),
+    var(--bunny-surface);
+  border-radius: 12px;
+  border: 1.5px dashed var(--bunny-line-strong);
   text-align: center;
-  background: #fafbfc;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone.is-dragover {
-  border-color: #5da9ff;
-  background: #f1f8ff;
+  border-color: var(--bunny-accent);
+  background:
+    radial-gradient(ellipse at center,
+      rgba(194, 65, 12, 0.12) 0%,
+      transparent 65%),
+    var(--bunny-surface);
+  transform: scale(0.997);
 }
 
-.bunny-xblock--author .bunny-xblock__dropzone-inner svg {
-  color: #8a93a0;
-  margin-bottom: 0.5rem;
+.bunny-xblock--author .bunny-xblock__dropzone-inner {
+  max-width: 380px;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-icon {
+  display: inline-flex;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--bunny-accent);
+  background: var(--bunny-accent-soft);
+  border-radius: 50%;
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-headline {
-  margin: 0.25rem 0;
-  font-weight: 600;
-  color: #333;
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 580;
+  letter-spacing: -0.018em;
+  color: var(--bunny-ink);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-sub {
-  margin: 0 0 1rem;
+  margin: 0 0 1.5rem;
   font-size: 0.875rem;
-  color: #6c7682;
+  line-height: 1.55;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-formats {
+  margin: 0.875rem 0 0;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.bunny-xblock--author .bunny-xblock__format-pill {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--bunny-muted);
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line);
+  border-radius: 4px;
 }
 
 .bunny-xblock--author .bunny-xblock__error {
-  margin: 0.75rem 0 0;
-  color: #b22a2a;
-  font-size: 0.875rem;
-  text-align: center;
+  margin: 1rem 0 0;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--bunny-error);
+  background: var(--bunny-error-soft);
+  border-radius: 8px;
+  border-left: 3px solid var(--bunny-error);
+  text-align: left;
 }
 
-/* ---- Buttons ------------------------------------------------------------ */
+/* ----- Buttons -------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #cbd2da;
-  background: #fff;
-  color: #2a2f36;
-  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  border: 1px solid var(--bunny-line-strong);
+  background: var(--bunny-paper);
+  color: var(--bunny-ink);
+  font-family: inherit;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, color 0.12s ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .bunny-xblock--author .bunny-xblock__btn:hover {
-  background: #f3f5f7;
+  background: var(--bunny-surface);
+  border-color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__btn:active {
+  transform: translateY(0.5px);
+}
+
+.bunny-xblock--author .bunny-xblock__btn:focus-visible {
+  outline: 2px solid var(--bunny-accent);
+  outline-offset: 2px;
 }
 
 .bunny-xblock--author .bunny-xblock__btn--primary {
-  background: #2a64f6;
-  border-color: #2a64f6;
-  color: #fff;
+  background: var(--bunny-ink);
+  border-color: var(--bunny-ink);
+  color: var(--bunny-paper);
 }
 
 .bunny-xblock--author .bunny-xblock__btn--primary:hover {
-  background: #1f4fcf;
-  border-color: #1f4fcf;
+  background: #000;
+  border-color: #000;
 }
 
 .bunny-xblock--author .bunny-xblock__btn--danger {
-  background: #fff;
-  border-color: #d9534f;
-  color: #c2342f;
+  border-color: var(--bunny-error);
+  color: var(--bunny-error);
 }
 
 .bunny-xblock--author .bunny-xblock__btn--danger:hover {
-  background: #fdecea;
+  background: var(--bunny-error-soft);
+  border-color: var(--bunny-error);
 }
 
 .bunny-xblock--author .bunny-xblock__btn--ghost {
-  background: transparent;
   border-color: transparent;
-  color: #5b6470;
+  background: transparent;
+  color: var(--bunny-muted);
 }
 
-/* ---- Uploading state ---------------------------------------------------- */
+.bunny-xblock--author .bunny-xblock__btn--ghost:hover {
+  background: var(--bunny-surface);
+  color: var(--bunny-ink);
+}
+
+/* ----- Uploading state ----------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__progress {
   padding: 1.5rem;
-  background: #f6f8fa;
-  border-radius: 10px;
+  background: var(--bunny-surface);
+  border-radius: 12px;
+  border: 1px solid var(--bunny-line);
 }
 
 .bunny-xblock--author .bunny-xblock__progress-headline {
-  margin: 0 0 0.5rem;
-  font-weight: 500;
-  color: #333;
+  margin: 0 0 0.875rem;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 1rem;
+}
+
+.bunny-xblock--author .bunny-xblock__progress-label {
+  font-size: 0.875rem;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__progress-filename {
+  color: var(--bunny-ink);
+  font-weight: 500;
 }
 
 .bunny-xblock--author .bunny-xblock__progress-percent {
+  font-family: var(--bunny-font-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: #2a64f6;
   font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bunny-accent);
 }
 
 .bunny-xblock--author .bunny-xblock__bar {
+  display: block;
   width: 100%;
   height: 6px;
+  margin-bottom: 1rem;
   border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 0.75rem;
+  background: var(--bunny-line);
+  /* Reset the native <progress> shell so our two ::*-progress-* tracks paint cleanly. */
+  border: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-bar { background: var(--bunny-line); }
+.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-value {
+  background: var(--bunny-accent);
+  transition: width 0.12s linear;
+  border-radius: 3px;
+}
+.bunny-xblock--author .bunny-xblock__bar::-moz-progress-bar {
+  background: var(--bunny-accent);
+  border-radius: 3px;
 }
 
-.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-bar { background: #e2e6ea; }
-.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-value { background: #2a64f6; transition: width 0.1s linear; }
-.bunny-xblock--author .bunny-xblock__bar::-moz-progress-bar { background: #2a64f6; }
-
-/* ---- Processing state --------------------------------------------------- */
+/* ----- Processing state ---------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__processing {
   display: flex;
-  gap: 0.75rem;
   align-items: center;
-  padding: 1.25rem;
-  background: #fffbe6;
-  border-radius: 10px;
-  border: 1px solid #ffe58f;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  background: var(--bunny-surface);
+  border: 1px solid var(--bunny-line);
+  border-radius: 12px;
+  border-left: 3px solid var(--bunny-accent);
+}
+
+.bunny-xblock--author .bunny-xblock__processing-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .bunny-xblock--author .bunny-xblock__processing-headline {
   margin: 0;
-  font-weight: 600;
-  color: #614d00;
+  font-size: 0.9375rem;
+  font-weight: 580;
+  color: var(--bunny-ink);
+  letter-spacing: -0.012em;
 }
 
 .bunny-xblock--author .bunny-xblock__processing-sub {
   margin: 0.125rem 0 0;
   font-size: 0.8125rem;
-  color: #7c6500;
+  color: var(--bunny-muted);
 }
 
-.bunny-xblock--author .bunny-xblock__spinner {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid #ffe58f;
-  border-top-color: #b88600;
-  animation: bunny-spin 0.8s linear infinite;
+/* Barber-pole stripe — a "server is working" heartbeat, deliberately calmer
+   than a spinning indicator. Anchored on the left rule so the eye lands on
+   it without becoming the dominant element. */
+.bunny-xblock--author .bunny-xblock__pulse {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      var(--bunny-accent) 0,
+      var(--bunny-accent) 6px,
+      var(--bunny-accent-soft) 6px,
+      var(--bunny-accent-soft) 12px
+    );
+  background-size: 200% 200%;
+  animation: bunny-pole 1.6s linear infinite;
   flex-shrink: 0;
 }
 
-@keyframes bunny-spin { to { transform: rotate(360deg); } }
+@keyframes bunny-pole {
+  0%   { background-position: 0 0; }
+  100% { background-position: -34px 0; }
+}
 
-/* ---- Ready state -------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .bunny-xblock--author .bunny-xblock__pulse { animation: none; }
+}
+
+/* ----- Ready state --------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__player {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
+  margin-top: 1rem;
   border-radius: 10px;
   overflow: hidden;
-  background: #0f1115;
+  background: #0A0A09;
+  border: 1px solid var(--bunny-line);
 }
 
 .bunny-xblock--author .bunny-xblock__iframe {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
   display: block;
 }
 
+.bunny-xblock--author .bunny-xblock__meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0.875rem 0 0;
+  padding: 0.5rem 0;
+  font-size: 0.75rem;
+}
+
+.bunny-xblock--author .bunny-xblock__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--bunny-muted);
+  font-family: var(--bunny-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.bunny-xblock--author .bunny-xblock__meta-label {
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bunny-xblock--author .bunny-xblock__status-pill--ready {
+  background: var(--bunny-success-soft);
+  color: var(--bunny-success);
+}
+
+.bunny-xblock--author .bunny-xblock__status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .bunny-xblock--author .bunny-xblock__actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--bunny-line);
 }
 
-/* ---- Failed state ------------------------------------------------------- */
+.bunny-xblock--author .bunny-xblock__actions-spacer { flex: 1; }
+
+/* ----- Failed state -------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__failed {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.875rem;
   align-items: flex-start;
-  padding: 1.25rem;
-  background: #fff1f0;
-  border: 1px solid #ffa39e;
+  padding: 1rem 1.125rem;
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line);
+  border-left: 3px solid var(--bunny-error);
   border-radius: 10px;
-  color: #a8071a;
 }
 
-.bunny-xblock--author .bunny-xblock__failed-headline { margin: 0; font-weight: 600; }
-.bunny-xblock--author .bunny-xblock__failed-sub { margin: 0.125rem 0 0; font-size: 0.8125rem; }
+.bunny-xblock--author .bunny-xblock__failed-icon {
+  flex-shrink: 0;
+  color: var(--bunny-error);
+  margin-top: 0.125rem;
+}
 
-/* ---- Title field -------------------------------------------------------- */
+.bunny-xblock--author .bunny-xblock__failed-headline {
+  margin: 0;
+  font-weight: 580;
+  color: var(--bunny-ink);
+  letter-spacing: -0.012em;
+}
+
+.bunny-xblock--author .bunny-xblock__failed-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--bunny-muted);
+}
+
+/* ----- Title field (above the player in ready, below the banner elsewhere) -- */
 
 .bunny-xblock--author .bunny-xblock__field {
-  margin-top: 0.875rem;
+  margin-top: 1rem;
+}
+
+.bunny-xblock--author .bunny-xblock__field--first {
+  margin-top: 0;
 }
 
 .bunny-xblock--author .bunny-xblock__label {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #5b6470;
+  margin-bottom: 0.375rem;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__input {
   width: 100%;
-  padding: 0.5rem 0.625rem;
-  border-radius: 6px;
-  border: 1px solid #cbd2da;
-  font-size: 0.9375rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--bunny-line-strong);
+  background: var(--bunny-paper);
+  color: var(--bunny-ink);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__input::placeholder {
+  color: var(--bunny-muted);
+  font-weight: 400;
+}
+
+.bunny-xblock--author .bunny-xblock__input:hover {
+  border-color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__input:focus {
   outline: none;
-  border-color: #5da9ff;
-  box-shadow: 0 0 0 3px rgba(93, 169, 255, 0.18);
+  border-color: var(--bunny-accent);
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.15);
+}
+
+/* ----- Modal confirm dialog (replaces window.confirm) ---------------- */
+
+.bunny-xblock--author .bunny-xblock__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 19, 15, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.bunny-xblock--author .bunny-xblock__modal[data-open="true"] {
+  display: flex;
+}
+
+.bunny-xblock--author .bunny-xblock__modal-card {
+  width: min(90vw, 420px);
+  padding: 1.5rem;
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line);
+  border-radius: 14px;
+  box-shadow: 0 30px 60px -20px rgba(20, 19, 15, 0.25);
+  animation: bunny-modal-in 0.16s ease-out;
+}
+
+@keyframes bunny-modal-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.bunny-xblock--author .bunny-xblock__modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 580;
+  letter-spacing: -0.015em;
+}
+
+.bunny-xblock--author .bunny-xblock__modal-body {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
