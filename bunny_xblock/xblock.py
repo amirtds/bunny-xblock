@@ -150,7 +150,22 @@ class BunnyVideoXBlock(XBlock):
         )
         fragment = Fragment(rendered)
         fragment.add_css(_resource("static/css/author_view.css"))
-        fragment.add_javascript(_resource("static/js/vendor/tus.min.js"))
+        # tus-js-client ships as a UMD bundle. Open edX Studio loads XBlock JS
+        # inside a RequireJS context (`define.amd` is truthy), so the UMD
+        # wrapper picks the AMD branch and registers anonymously instead of
+        # attaching to `window.tus`. The author-view JS then fails with
+        # "tus is not defined".
+        #
+        # Workaround: shadow `define`, `exports`, and `module` inside an IIFE
+        # so the UMD wrapper falls through to the global-assignment branch
+        # (`window.tus = factory()`). Cleanest fix that doesn't require
+        # forking or rebuilding tus-js-client.
+        tus_src = _resource("static/js/vendor/tus.min.js")
+        fragment.add_javascript(
+            "(function(){var define=undefined,exports=undefined,module=undefined;\n"
+            + tus_src
+            + "\n}).call(window);"
+        )
         fragment.add_javascript(_resource("static/js/author_view.js"))
         fragment.initialize_js(
             "BunnyAuthorView",
