@@ -5,6 +5,8 @@
   <div class="bunny-xblock__lockup" aria-hidden="true">
     <span class="bunny-xblock__lockup-dot"></span>
     <span>Bunny Stream</span>
+    <span class="bunny-xblock__lockup-spacer"></span>
+    <span class="bunny-xblock__lockup-version">v0.1</span>
   </div>
 
   <!-- ─── State: empty ──────────────────────────────────────────────── -->
@@ -16,15 +18,17 @@
          aria-label="Drop a video file here or activate to choose one">
       <div class="bunny-xblock__dropzone-inner">
         <span class="bunny-xblock__dropzone-icon" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 16V4" />
             <path d="m6 10 6-6 6 6" />
             <path d="M4 20h16" />
           </svg>
         </span>
-        <p class="bunny-xblock__dropzone-headline">Drop a video to upload</p>
+        <h2 class="bunny-xblock__dropzone-headline">
+          Drop a video <em>here</em>
+        </h2>
         <p class="bunny-xblock__dropzone-sub">
-          Direct browser-to-Bunny upload. Your Open&nbsp;edX server never sees the bytes.
+          Direct browser-to-Bunny upload. Your Open&nbsp;edX server never touches the bytes — the file streams straight to the CDN.
         </p>
         <button type="button" class="bunny-xblock__btn bunny-xblock__btn--primary" data-action="choose">
           Choose video
@@ -72,7 +76,7 @@
     <div class="bunny-xblock__processing" role="status" aria-live="polite">
       <span class="bunny-xblock__pulse" aria-hidden="true"></span>
       <div class="bunny-xblock__processing-text">
-        <p class="bunny-xblock__processing-headline">Bunny is encoding your video</p>
+        <h3 class="bunny-xblock__processing-headline">Bunny is encoding your video</h3>
         <p class="bunny-xblock__processing-sub">Usually under two minutes. This view updates automatically — no refresh needed.</p>
       </div>
     </div>
@@ -127,7 +131,7 @@
         </svg>
       </span>
       <div>
-        <p class="bunny-xblock__failed-headline">Bunny couldn't process this video</p>
+        <h3 class="bunny-xblock__failed-headline">Bunny couldn't process this video</h3>
         <p class="bunny-xblock__failed-sub" data-bunny-fail-message>
           Try uploading a different file, or check the Bunny Stream dashboard for encoding error details.
         </p>

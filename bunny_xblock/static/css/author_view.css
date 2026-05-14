@@ -1,26 +1,27 @@
 /*
  * Bunny.net Stream XBlock — Studio author view.
  *
- * Aesthetic: editorial / publishing-tool. Cream paper, ink type, single warm
- * rust accent. Distinct against Studio's white-and-blue chrome without
- * shouting. All styles scoped under `.bunny-xblock--author`.
+ * Aesthetic: editorial / publishing-tool. Display serif (Fraunces) for headlines,
+ * technical mono (JetBrains Mono) for metadata, refined system sans for body.
+ * Cream paper + ink + a single warm rust accent. Stands apart from Studio's
+ * neutral chrome without being loud.
  *
- * Note on `[hidden]`: the browser's UA rule `[hidden] { display: none }` has
- * specificity (0,1,0). Any `display:` we write on the same element has to
- * either avoid the panel, or pair with an explicit `[hidden]` override —
- * otherwise the HTML `hidden` attribute silently breaks. v0.1 shipped with
- * exactly that bug; the rule below is the explicit reinstatement.
+ * Fonts loaded via Google Fonts with `display=swap` so the layout renders
+ * instantly with the fallback stack and upgrades on font arrival. If Studio's
+ * CSP blocks fonts.googleapis.com the fallback stack still produces a tasteful
+ * serif/mono pairing (Iowan Old Style on macOS, SF Mono / Menlo for code).
  */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 .bunny-xblock--author {
-  /* Design tokens — kept on the root so any nested rule can read them
-     without re-declaring, and so a v0.2 dark mode is one block away. */
+  /* ----- Design tokens ----- */
   --bunny-paper: #FBFAF8;
   --bunny-ink: #14130F;
   --bunny-muted: #6A6353;
   --bunny-line: #E8E2D6;
   --bunny-line-strong: #D9D2C2;
   --bunny-surface: #F4F0E7;
+  --bunny-surface-deep: #ECE5D5;
   --bunny-accent: #C2410C;
   --bunny-accent-strong: #9A330A;
   --bunny-accent-soft: #FED7AA;
@@ -29,128 +30,230 @@
   --bunny-error: #B91C1C;
   --bunny-error-soft: #FEE2E2;
 
+  /* Display serif. opsz axis means we use larger optical masters automatically
+     via font-variation-settings on each headline. */
+  --bunny-font-display:
+    "Fraunces", "Iowan Old Style", "Apple Garamond", Baskerville,
+    "Times New Roman", serif;
+  /* Refined system sans. Best native font on every platform — keeps body
+     text feeling native to the host OS without dragging in another network
+     request. */
   --bunny-font-sans:
-    ui-sans-serif, -apple-system, BlinkMacSystemFont,
-    "SF Pro Display", "Segoe UI Variable Display", "Inter", system-ui, sans-serif;
+    -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  /* Distinctive mono used for technical labels (GUID, formats, status). */
   --bunny-font-mono:
-    ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+    "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
 
   font-family: var(--bunny-font-sans);
-  font-feature-settings: "ss01", "cv11";
+  font-size: 16px;
+  line-height: 1.55;
   color: var(--bunny-ink);
   background: var(--bunny-paper);
   border: 1px solid var(--bunny-line);
-  border-radius: 14px;
-  padding: 1.5rem 1.5rem 1.25rem;
-  margin: 1rem 0;
-  box-shadow: 0 1px 0 rgba(20, 19, 15, 0.02), 0 8px 24px -16px rgba(20, 19, 15, 0.06);
-  /* Defensive reset: Studio occasionally injects a `line-height: 1.4` that
-     truncates the cap-line on our display-weight text. */
-  line-height: 1.5;
+  border-radius: 18px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  margin: 1.25rem 0;
+  box-shadow:
+    0 1px 0 rgba(20, 19, 15, 0.02),
+    0 12px 32px -20px rgba(20, 19, 15, 0.08);
+  /* Defensive — Studio sometimes pushes a tighter line-height onto descendants. */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* -- Box-sizing inside the block (Studio's reset isn't consistent) -- */
 .bunny-xblock--author *,
 .bunny-xblock--author *::before,
 .bunny-xblock--author *::after {
   box-sizing: border-box;
 }
 
-/* -- Panel base + reinstated [hidden] override (THE bug fix) ----------- */
+/* Defensive reset — Studio injects global heading margins that fight our
+   block-level spacing. Zero them at the source; each headline class sets
+   its own explicit margin below. */
+.bunny-xblock--author h1,
+.bunny-xblock--author h2,
+.bunny-xblock--author h3,
+.bunny-xblock--author h4,
+.bunny-xblock--author p {
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- Panel base + [hidden] reinstatement (THE v0.1 bug fix) -------------- */
 
 .bunny-xblock--author .bunny-xblock__panel {
   display: block;
+  animation: bunny-fade-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .bunny-xblock--author .bunny-xblock__panel[hidden] {
   display: none !important;
 }
 
-/* -- Brand lockup (top-left of every state) --------------------------- */
+@keyframes bunny-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bunny-xblock--author .bunny-xblock__panel { animation: none; }
+}
+
+/* ---- Brand lockup ------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__lockup {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 1rem;
+  gap: 0.625rem;
+  margin: 0 0 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--bunny-line);
   font-family: var(--bunny-font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__lockup-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--bunny-accent);
+  box-shadow: 0 0 0 4px rgba(194, 65, 12, 0.12);
   flex-shrink: 0;
 }
 
-/* ----- Empty state ---------------------------------------------------- */
+.bunny-xblock--author .bunny-xblock__lockup-spacer {
+  flex: 1;
+}
+
+.bunny-xblock--author .bunny-xblock__lockup-version {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  color: var(--bunny-line-strong);
+}
+
+/* ---- Empty state -------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__dropzone {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
-  padding: 3.5rem 2rem;
-  background:
-    radial-gradient(ellipse at center,
-      rgba(194, 65, 12, 0.04) 0%,
-      transparent 70%),
-    var(--bunny-surface);
-  border-radius: 12px;
+  min-height: 360px;
+  padding: 4rem 2rem;
+  border-radius: 14px;
   border: 1.5px dashed var(--bunny-line-strong);
+  background-color: var(--bunny-surface);
+  background-image:
+    radial-gradient(ellipse 60% 50% at center,
+      rgba(194, 65, 12, 0.06) 0%,
+      transparent 60%),
+    radial-gradient(circle at 20% 20%,
+      rgba(20, 19, 15, 0.025) 0%,
+      transparent 35%),
+    radial-gradient(circle at 80% 80%,
+      rgba(20, 19, 15, 0.025) 0%,
+      transparent 35%);
   text-align: center;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone:hover {
+  border-color: var(--bunny-line-strong);
+  background-color: var(--bunny-surface-deep);
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone:focus-visible {
+  outline: 3px solid var(--bunny-accent);
+  outline-offset: 4px;
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone.is-dragover {
   border-color: var(--bunny-accent);
-  background:
-    radial-gradient(ellipse at center,
-      rgba(194, 65, 12, 0.12) 0%,
-      transparent 65%),
-    var(--bunny-surface);
+  background-color: var(--bunny-surface-deep);
   transform: scale(0.997);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-inner {
-  max-width: 380px;
+  max-width: 540px;
+}
+
+/* Stagger reveal on first paint — felt without being showy. */
+.bunny-xblock--author .bunny-xblock__dropzone-inner > * {
+  opacity: 0;
+  animation: bunny-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(1) { animation-delay: 0.05s; }
+.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(2) { animation-delay: 0.12s; }
+.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(3) { animation-delay: 0.19s; }
+.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(4) { animation-delay: 0.26s; }
+.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(5) { animation-delay: 0.33s; }
+
+@keyframes bunny-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bunny-xblock--author .bunny-xblock__dropzone-inner > * {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-icon {
   display: inline-flex;
-  width: 56px;
-  height: 56px;
-  margin-bottom: 1.25rem;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 1.75rem;
   align-items: center;
   justify-content: center;
   color: var(--bunny-accent);
-  background: var(--bunny-accent-soft);
+  background:
+    radial-gradient(circle at 30% 30%, #FFE4C4 0%, var(--bunny-accent-soft) 70%);
   border-radius: 50%;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 8px 20px -8px rgba(194, 65, 12, 0.25);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-headline {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 580;
-  letter-spacing: -0.018em;
+  margin: 0 0 0.75rem;
+  font-family: var(--bunny-font-display);
+  font-size: clamp(1.75rem, 1rem + 1.5vw, 2.5rem);
+  font-weight: 500;
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
   color: var(--bunny-ink);
 }
 
+.bunny-xblock--author .bunny-xblock__dropzone-headline em {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 50, "wonk" 1;
+  color: var(--bunny-accent);
+}
+
 .bunny-xblock--author .bunny-xblock__dropzone-sub {
-  margin: 0 0 1.5rem;
-  font-size: 0.875rem;
+  margin: 0 0 1.75rem;
+  font-size: 1rem;
   line-height: 1.55;
   color: var(--bunny-muted);
+  max-width: 42ch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-formats {
-  margin: 0.875rem 0 0;
+  margin: 1rem 0 0;
   display: flex;
   gap: 0.5rem;
   justify-content: center;
@@ -159,21 +262,21 @@
 
 .bunny-xblock--author .bunny-xblock__format-pill {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
+  padding: 0.25rem 0.625rem;
   font-family: var(--bunny-font-mono);
-  font-size: 0.625rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--bunny-muted);
   background: var(--bunny-paper);
   border: 1px solid var(--bunny-line);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .bunny-xblock--author .bunny-xblock__error {
   margin: 1rem 0 0;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.8125rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
   color: var(--bunny-error);
   background: var(--bunny-error-soft);
   border-radius: 8px;
@@ -181,23 +284,29 @@
   text-align: left;
 }
 
-/* ----- Buttons -------------------------------------------------------- */
+/* ---- Buttons ------------------------------------------------------------ */
 
 .bunny-xblock--author .bunny-xblock__btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 8px;
+  padding: 0.6875rem 1.125rem;
+  border-radius: 9px;
   border: 1px solid var(--bunny-line-strong);
   background: var(--bunny-paper);
   color: var(--bunny-ink);
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 500;
+  letter-spacing: -0.005em;
   line-height: 1.2;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.06s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.06s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -217,14 +326,24 @@
 }
 
 .bunny-xblock--author .bunny-xblock__btn--primary {
+  padding: 0.8125rem 1.5rem;
   background: var(--bunny-ink);
   border-color: var(--bunny-ink);
   color: var(--bunny-paper);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 6px 18px -6px rgba(20, 19, 15, 0.35);
 }
 
 .bunny-xblock--author .bunny-xblock__btn--primary:hover {
   background: #000;
   border-color: #000;
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 10px 22px -8px rgba(20, 19, 15, 0.45);
 }
 
 .bunny-xblock--author .bunny-xblock__btn--danger {
@@ -248,37 +367,40 @@
   color: var(--bunny-ink);
 }
 
-/* ----- Uploading state ----------------------------------------------- */
+/* ---- Uploading state ---------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__progress {
-  padding: 1.5rem;
+  padding: 1.75rem;
   background: var(--bunny-surface);
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid var(--bunny-line);
 }
 
 .bunny-xblock--author .bunny-xblock__progress-headline {
-  margin: 0 0 0.875rem;
+  margin: 0 0 1rem;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .bunny-xblock--author .bunny-xblock__progress-label {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__progress-filename {
   color: var(--bunny-ink);
   font-weight: 500;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.9375rem;
 }
 
 .bunny-xblock--author .bunny-xblock__progress-percent {
   font-family: var(--bunny-font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--bunny-accent);
 }
@@ -286,37 +408,39 @@
 .bunny-xblock--author .bunny-xblock__bar {
   display: block;
   width: 100%;
-  height: 6px;
-  margin-bottom: 1rem;
-  border-radius: 3px;
+  height: 8px;
+  margin-bottom: 1.25rem;
+  border-radius: 4px;
   overflow: hidden;
   background: var(--bunny-line);
-  /* Reset the native <progress> shell so our two ::*-progress-* tracks paint cleanly. */
   border: 0;
   -webkit-appearance: none;
   appearance: none;
 }
-.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-bar { background: var(--bunny-line); }
+.bunny-xblock--author .bunny-xblock__bar::-webkit-progress-bar {
+  background: var(--bunny-line);
+  border-radius: 4px;
+}
 .bunny-xblock--author .bunny-xblock__bar::-webkit-progress-value {
-  background: var(--bunny-accent);
-  transition: width 0.12s linear;
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bunny-accent) 0%, #E26939 100%);
+  transition: width 0.18s ease-out;
+  border-radius: 4px;
 }
 .bunny-xblock--author .bunny-xblock__bar::-moz-progress-bar {
   background: var(--bunny-accent);
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
-/* ----- Processing state ---------------------------------------------- */
+/* ---- Processing state --------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__processing {
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  padding: 1rem 1.125rem;
+  gap: 1rem;
+  padding: 1.25rem 1.375rem;
   background: var(--bunny-surface);
   border: 1px solid var(--bunny-line);
-  border-radius: 12px;
+  border-radius: 14px;
   border-left: 3px solid var(--bunny-accent);
 }
 
@@ -327,58 +451,61 @@
 
 .bunny-xblock--author .bunny-xblock__processing-headline {
   margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 580;
+  font-family: var(--bunny-font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 60;
+  letter-spacing: -0.015em;
   color: var(--bunny-ink);
-  letter-spacing: -0.012em;
 }
 
 .bunny-xblock--author .bunny-xblock__processing-sub {
-  margin: 0.125rem 0 0;
-  font-size: 0.8125rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
   color: var(--bunny-muted);
 }
 
-/* Barber-pole stripe — a "server is working" heartbeat, deliberately calmer
-   than a spinning indicator. Anchored on the left rule so the eye lands on
-   it without becoming the dominant element. */
 .bunny-xblock--author .bunny-xblock__pulse {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background:
     repeating-linear-gradient(
       45deg,
       var(--bunny-accent) 0,
-      var(--bunny-accent) 6px,
-      var(--bunny-accent-soft) 6px,
-      var(--bunny-accent-soft) 12px
+      var(--bunny-accent) 7px,
+      var(--bunny-accent-soft) 7px,
+      var(--bunny-accent-soft) 14px
     );
   background-size: 200% 200%;
   animation: bunny-pole 1.6s linear infinite;
   flex-shrink: 0;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 4px 12px -4px rgba(194, 65, 12, 0.2);
 }
 
 @keyframes bunny-pole {
   0%   { background-position: 0 0; }
-  100% { background-position: -34px 0; }
+  100% { background-position: -40px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bunny-xblock--author .bunny-xblock__pulse { animation: none; }
 }
 
-/* ----- Ready state --------------------------------------------------- */
+/* ---- Ready state -------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__player {
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  margin-top: 1rem;
-  border-radius: 10px;
+  margin-top: 1.25rem;
+  border-radius: 12px;
   overflow: hidden;
   background: #0A0A09;
   border: 1px solid var(--bunny-line);
+  box-shadow: 0 12px 32px -16px rgba(20, 19, 15, 0.25);
 }
 
 .bunny-xblock--author .bunny-xblock__iframe {
@@ -392,40 +519,43 @@
 
 .bunny-xblock--author .bunny-xblock__meta {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
   flex-wrap: wrap;
-  margin: 0.875rem 0 0;
-  padding: 0.5rem 0;
-  font-size: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
 }
 
 .bunny-xblock--author .bunny-xblock__meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  color: var(--bunny-muted);
+  gap: 0.5rem;
+  color: var(--bunny-ink);
   font-family: var(--bunny-font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  font-size: 0.9375rem;
+  letter-spacing: 0.01em;
 }
 
 .bunny-xblock--author .bunny-xblock__meta-label {
   text-transform: uppercase;
-  font-size: 0.625rem;
-  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
   color: var(--bunny-muted);
+  font-weight: 500;
 }
 
 .bunny-xblock--author .bunny-xblock__status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.125rem 0.5rem;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 999px;
   font-family: var(--bunny-font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.04em;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -436,33 +566,33 @@
 
 .bunny-xblock--author .bunny-xblock__status-pill::before {
   content: "";
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: currentColor;
 }
 
 .bunny-xblock--author .bunny-xblock__actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
   border-top: 1px dashed var(--bunny-line);
 }
 
 .bunny-xblock--author .bunny-xblock__actions-spacer { flex: 1; }
 
-/* ----- Failed state -------------------------------------------------- */
+/* ---- Failed state ------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__failed {
   display: flex;
-  gap: 0.875rem;
+  gap: 1rem;
   align-items: flex-start;
-  padding: 1rem 1.125rem;
+  padding: 1.25rem 1.375rem;
   background: var(--bunny-paper);
   border: 1px solid var(--bunny-line);
   border-left: 3px solid var(--bunny-error);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .bunny-xblock--author .bunny-xblock__failed-icon {
@@ -473,21 +603,24 @@
 
 .bunny-xblock--author .bunny-xblock__failed-headline {
   margin: 0;
-  font-weight: 580;
+  font-family: var(--bunny-font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 60;
+  letter-spacing: -0.015em;
   color: var(--bunny-ink);
-  letter-spacing: -0.012em;
 }
 
 .bunny-xblock--author .bunny-xblock__failed-sub {
-  margin: 0.25rem 0 0;
-  font-size: 0.8125rem;
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
   color: var(--bunny-muted);
 }
 
-/* ----- Title field (above the player in ready, below the banner elsewhere) -- */
+/* ---- Title field -------------------------------------------------------- */
 
 .bunny-xblock--author .bunny-xblock__field {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 
 .bunny-xblock--author .bunny-xblock__field--first {
@@ -496,31 +629,33 @@
 
 .bunny-xblock--author .bunny-xblock__label {
   display: block;
-  margin-bottom: 0.375rem;
+  margin-bottom: 0.5rem;
   font-family: var(--bunny-font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__input {
   width: 100%;
-  padding: 0.625rem 0.75rem;
-  border-radius: 8px;
+  padding: 0.8125rem 1rem;
+  border-radius: 10px;
   border: 1px solid var(--bunny-line-strong);
   background: var(--bunny-paper);
   color: var(--bunny-ink);
-  font-family: inherit;
-  font-size: 1rem;
+  font-family: var(--bunny-font-display);
+  font-size: 1.125rem;
   font-weight: 500;
-  letter-spacing: -0.005em;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  font-variation-settings: "opsz" 18;
+  letter-spacing: -0.01em;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .bunny-xblock--author .bunny-xblock__input::placeholder {
   color: var(--bunny-muted);
+  font-style: italic;
   font-weight: 400;
 }
 
@@ -531,10 +666,11 @@
 .bunny-xblock--author .bunny-xblock__input:focus {
   outline: none;
   border-color: var(--bunny-accent);
-  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.15);
+  box-shadow: 0 0 0 4px rgba(194, 65, 12, 0.14);
+  background: var(--bunny-paper);
 }
 
-/* ----- Modal confirm dialog (replaces window.confirm) ---------------- */
+/* ---- Confirm modal ------------------------------------------------------ */
 
 .bunny-xblock--author .bunny-xblock__modal {
   position: fixed;
@@ -543,9 +679,9 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 19, 15, 0.45);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  background: rgba(20, 19, 15, 0.5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .bunny-xblock--author .bunny-xblock__modal[data-open="true"] {
@@ -553,30 +689,33 @@
 }
 
 .bunny-xblock--author .bunny-xblock__modal-card {
-  width: min(90vw, 420px);
-  padding: 1.5rem;
+  width: min(90vw, 460px);
+  padding: 1.75rem;
   background: var(--bunny-paper);
   border: 1px solid var(--bunny-line);
-  border-radius: 14px;
-  box-shadow: 0 30px 60px -20px rgba(20, 19, 15, 0.25);
-  animation: bunny-modal-in 0.16s ease-out;
+  border-radius: 16px;
+  box-shadow: 0 30px 60px -20px rgba(20, 19, 15, 0.35);
+  animation: bunny-modal-in 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes bunny-modal-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .bunny-xblock--author .bunny-xblock__modal-title {
   margin: 0 0 0.5rem;
-  font-size: 1.0625rem;
-  font-weight: 580;
-  letter-spacing: -0.015em;
+  font-family: var(--bunny-font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  font-variation-settings: "opsz" 90;
+  letter-spacing: -0.018em;
+  color: var(--bunny-ink);
 }
 
 .bunny-xblock--author .bunny-xblock__modal-body {
-  margin: 0 0 1.25rem;
-  font-size: 0.875rem;
+  margin: 0 0 1.5rem;
+  font-size: 1rem;
   line-height: 1.55;
   color: var(--bunny-muted);
 }
