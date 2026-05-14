@@ -344,16 +344,49 @@ function BunnyAuthorView(runtime, element, config) {
 
   // ---- Confirm modal (replaces window.confirm) ----------------------------------
 
+  // Remember whatever was focused before the modal opened so we can restore
+  // it on close — standard a11y dialog hygiene.
+  var modalReturnFocus = null;
+
+  function getModalFocusables() {
+    if (!modal) return [];
+    return Array.prototype.slice.call(
+      modal.querySelectorAll('button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+    );
+  }
+
+  function trapModalTab(e) {
+    if (e.key !== "Tab") return;
+    var nodes = getModalFocusables();
+    if (!nodes.length) return;
+    var first = nodes[0];
+    var last = nodes[nodes.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function openModal() {
     if (!modal) return;
+    modalReturnFocus = document.activeElement;
     modal.setAttribute("data-open", "true");
     var confirmBtn = modal.querySelector('[data-action="modal-confirm"]');
     if (confirmBtn) confirmBtn.focus();
+    document.addEventListener("keydown", trapModalTab);
   }
 
   function closeModal() {
     if (!modal) return;
     modal.removeAttribute("data-open");
+    document.removeEventListener("keydown", trapModalTab);
+    if (modalReturnFocus && typeof modalReturnFocus.focus === "function") {
+      modalReturnFocus.focus();
+    }
+    modalReturnFocus = null;
   }
 
   // ---- Replace / delete ---------------------------------------------------------

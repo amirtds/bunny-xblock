@@ -24,22 +24,19 @@
             <path d="M4 20h16" />
           </svg>
         </span>
+        <p class="bunny-xblock__dropzone-eyebrow">Bunny Stream upload</p>
         <h2 class="bunny-xblock__dropzone-headline">
           Drop a video <em>here</em>
         </h2>
         <p class="bunny-xblock__dropzone-sub">
           Direct browser-to-Bunny upload. Your Open&nbsp;edX server never touches the bytes — the file streams straight to the CDN.
+          <br />
+          <span class="bunny-xblock__dropzone-sub-formats">Accepts MP4 · MOV · MKV · WebM</span>
         </p>
         <button type="button" class="bunny-xblock__btn bunny-xblock__btn--primary" data-action="choose">
           Choose video
         </button>
         <input type="file" accept="video/*" class="bunny-xblock__file" data-bunny-file hidden />
-        <div class="bunny-xblock__dropzone-formats" aria-hidden="true">
-          <span class="bunny-xblock__format-pill">MP4</span>
-          <span class="bunny-xblock__format-pill">MOV</span>
-          <span class="bunny-xblock__format-pill">MKV</span>
-          <span class="bunny-xblock__format-pill">WebM</span>
-        </div>
       </div>
     </div>
     <p class="bunny-xblock__error" data-bunny-error hidden role="alert"></p>
@@ -74,6 +71,7 @@
              data-bunny-title />
     </div>
     <div class="bunny-xblock__processing" role="status" aria-live="polite">
+      <span class="bunny-xblock__card-pill" aria-hidden="true">Encoding</span>
       <span class="bunny-xblock__pulse" aria-hidden="true"></span>
       <div class="bunny-xblock__processing-text">
         <h3 class="bunny-xblock__processing-headline">Bunny is encoding your video</h3>
@@ -124,6 +122,7 @@
   <!-- ─── State: failed ─────────────────────────────────────────────── -->
   <section class="bunny-xblock__panel bunny-xblock__panel--failed" data-panel="failed" hidden>
     <div class="bunny-xblock__failed" role="alert">
+      <span class="bunny-xblock__card-pill bunny-xblock__card-pill--failed" aria-hidden="true">Failed</span>
       <span class="bunny-xblock__failed-icon" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" />

@@ -91,7 +91,20 @@ class UploadTokenView(APIView):
     permission_classes = [IsAuthenticated, IsStaffUser]
 
     def post(self, request):
-        title = (request.data.get("title") or "Untitled video").strip()[:250]
+        raw_title = (request.data.get("title") or "Untitled video").strip()
+        # Strip the trailing file extension from filename-style titles
+        # (`promo-video-XYZ.mp4` → `promo-video-XYZ`). Hyphens and underscores
+        # are preserved on purpose — they're often intentional file refs and
+        # authors rename freely afterwards.
+        if "." in raw_title:
+            stem, _, ext = raw_title.rpartition(".")
+            # Only strip if the extension looks like a real file extension
+            # (1–6 alphanumeric chars, no spaces). Otherwise leave the dot
+            # alone — e.g. a title like "Mr. Robinson's lecture" should not
+            # become "Mr".
+            if stem and ext and ext.isalnum() and 1 <= len(ext) <= 6:
+                raw_title = stem
+        title = raw_title[:250] or "Untitled video"
 
         if not _rate_limit(f"mint:{request.user.id}", _RL_MINT_MAX):
             return Response(

@@ -193,6 +193,44 @@ class BunnyVideoXBlock(XBlock):
 
     # ---- JSON handlers (called by author_view.js) -----------------------------------
 
+    def _persist_to_modulestore(self) -> None:
+        """
+        Force Open edX's split modulestore to write our `Scope.content` field
+        changes through to the draft course.
+
+        ``@XBlock.json_handler`` already calls ``self.save()`` after the
+        handler returns, but in Studio's runtime that only flushes the
+        in-memory field cache for the current request — Scope.content fields
+        are not persisted unless someone explicitly calls
+        ``modulestore().update_item(block, user_id)``.
+
+        Without this call, ``set_video`` returns ``{ok: True}`` but the next
+        page load (or any LMS request) sees ``self.guid == ""`` and renders
+        the "video can't be loaded" fallback. That's the bug screenshot the
+        user hit on cubite.io's LMS.
+
+        The import lives inside the function so the package still imports
+        cleanly in workbench / pure-XBlock test environments where
+        ``xmodule.modulestore`` is absent.
+        """
+        try:
+            from xmodule.modulestore.django import modulestore  # pylint: disable=import-error
+        except ImportError:
+            # Workbench / non-Open-edX environment — `self.save()` plus the
+            # in-memory cache is the best we can do.
+            return
+        try:
+            user_id = self.scope_ids.user_id
+        except AttributeError:
+            user_id = None
+        try:
+            modulestore().update_item(self, user_id)
+        except Exception as exc:  # pragma: no cover - depends on host runtime
+            log.error(
+                "[bunny:xblock] modulestore_update_item_failed",
+                extra={"guid": self.guid, "err": str(exc)},
+            )
+
     @XBlock.json_handler
     def set_video(self, data, suffix=""):
         """
@@ -221,6 +259,7 @@ class BunnyVideoXBlock(XBlock):
             self.duration_sec = data["duration_sec"]
         self.thumbnail_url = (data.get("thumbnail_url") or "")[:1000]
         self.status = data.get("status") or self.status or "pending"
+        self._persist_to_modulestore()
         return {"ok": True}
 
     @XBlock.json_handler
@@ -233,6 +272,7 @@ class BunnyVideoXBlock(XBlock):
             self.duration_sec = data["duration_sec"]
         if data.get("thumbnail_url"):
             self.thumbnail_url = data["thumbnail_url"][:1000]
+        self._persist_to_modulestore()
         return {"ok": True, "status": self.status}
 
     @XBlock.json_handler
@@ -243,6 +283,7 @@ class BunnyVideoXBlock(XBlock):
         # display_name so the Studio outline doesn't stay generic.
         if title and self.display_name in ("Bunny Video", ""):
             self.display_name = title
+        self._persist_to_modulestore()
         return {"ok": True, "title": title}
 
     @XBlock.json_handler
@@ -257,6 +298,7 @@ class BunnyVideoXBlock(XBlock):
         self.duration_sec = 0
         self.thumbnail_url = ""
         self.status = ""
+        self._persist_to_modulestore()
         return {"ok": True}
 
     # ---- Helpers --------------------------------------------------------------------
