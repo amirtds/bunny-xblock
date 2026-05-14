@@ -8,8 +8,8 @@ Open edX XBlock that embeds [Bunny.net Stream](https://bunny.net/stream/) videos
 
 | Component        | Supported versions                    | Notes                                                                                  |
 | ---------------- | ------------------------------------- | -------------------------------------------------------------------------------------- |
-| **Open edX**     | Sumac (`open-release/sumac.master`) and newer, including Teak | Earlier releases (Quince, Redwood, Palm) haven't been tested — likely works, no guarantee. |
-| **Tutor**        | 19.x (Sumac) and 20.x (Teak)          | The `OPENEDX_EXTRA_PIP_REQUIREMENTS` install path is identical on both.                |
+| **Open edX**     | Sumac, Teak, and Ulmo (`open-release/{sumac,teak,ulmo}.master`) | Earlier releases (Quince, Redwood, Palm) haven't been tested — likely works, no guarantee. The XBlock self-wires through the stable `lms.djangoapp` / `cms.djangoapp` plugin entry points, so forward compatibility with future named releases is expected. |
+| **Tutor**        | 19.x (Sumac), 20.x (Teak), 21.x (Ulmo)| The `OPENEDX_EXTRA_PIP_REQUIREMENTS` install path is identical across all three.        |
 | **Python**       | 3.11 (matches Tutor Sumac / Teak)     | The package itself declares `python>=3.8` so it's also installable in older runtimes.  |
 | **Django**       | 4.2 LTS                               | Same Django Open edX ships with.                                                       |
 | **Bunny.net**    | Stream — any plan                     | DRM (MediaCage Premium) is *not* required. Token Authentication is in the free tier.  |
