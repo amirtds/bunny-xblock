@@ -184,17 +184,44 @@ class BunnyConfigurationAdmin(admin.ModelAdmin):
             "setTimeout(function(b){b.textContent='Copy';}.bind(null,this),1500);"
             "event.preventDefault();return false;"
         )
+
+        # Use Django admin's own CSS custom properties so we inherit whichever
+        # theme the host admin uses (Django 4.2+ admin ships dark + light
+        # palettes driven by these variables — Open edX Studio's admin is
+        # frequently dark-themed by tenants).
+        code_style = (
+            "user-select:all;"
+            "display:inline-block;"
+            "padding:6px 10px;"
+            "background:var(--darkened-bg, rgba(127,127,127,0.1));"
+            "color:var(--body-fg, inherit);"
+            "border:1px solid var(--border-color, rgba(127,127,127,0.3));"
+            "border-radius:6px;"
+            "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;"
+            "font-size:13px;"
+            "line-height:1.5;"
+            "word-break:break-all;"
+        )
+        button_style = (
+            "margin-left:8px;"
+            "padding:5px 12px;"
+            "border:1px solid var(--border-color, rgba(127,127,127,0.4));"
+            "border-radius:4px;"
+            "background:var(--button-bg, transparent);"
+            "color:var(--button-fg, inherit);"
+            "font-family:inherit;"
+            "font-size:13px;"
+            "cursor:pointer;"
+        )
+
         return mark_safe(
-            f'<code style="user-select:all;display:inline-block;'
-            f'padding:6px 10px;background:#f5f5f5;border-radius:6px;'
-            f'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;'
-            f'font-size:13px">{full_url}</code> '
-            f'<button type="button" style="margin-left:8px;padding:4px 10px;'
-            f'cursor:pointer" onclick="{button_js}">Copy</button>'
+            f'<code style="{code_style}">{full_url}</code>'
+            f'<button type="button" style="{button_style}" '
+            f'onclick="{button_js}">Copy</button>'
             + (
                 ''
                 if lms_base
-                else '<br><small style="color:#a04;">'
+                else '<br><small style="color:var(--error-fg, #c2342f);">'
                      'Heads up: LMS_ROOT_URL is not configured on this stack — '
                      'the URL above is missing the scheme+host. Prepend your '
                      'LMS host before pasting into Bunny.'
