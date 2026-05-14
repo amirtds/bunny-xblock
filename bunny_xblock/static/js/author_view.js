@@ -96,13 +96,46 @@ function BunnyAuthorView(runtime, element, config) {
 
   // ---- Networking helpers ---------------------------------------------------------
 
+  // Read the `csrftoken` cookie Django sets on every authenticated session.
+  // DRF's SessionAuthentication enforces a CSRF check on POST/DELETE, so
+  // any state-changing request from Studio JS must echo it back in the
+  // X-CSRFToken header. Without this the API returns 403 with
+  //   {"detail":"CSRF Failed: …"}
+  // — which is exactly the failure mode that bit v0.1.
+  function getCookie(name) {
+    var m = document.cookie.match("(^|; )" + name.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&") + "=([^;]*)");
+    return m ? decodeURIComponent(m[2]) : "";
+  }
+
+  function csrfHeaders(extra) {
+    var headers = {
+      "X-CSRFToken": getCookie("csrftoken"),
+      "X-Requested-With": "XMLHttpRequest",
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { headers[k] = extra[k]; });
+    }
+    return headers;
+  }
+
   function postJson(url, body, signal) {
     return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: csrfHeaders({
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      }),
       credentials: "same-origin",
       body: body == null ? "{}" : JSON.stringify(body),
       signal: signal,
+    });
+  }
+
+  function deleteJson(url) {
+    return fetch(url, {
+      method: "DELETE",
+      headers: csrfHeaders({ "Accept": "application/json" }),
+      credentials: "same-origin",
     });
   }
 
@@ -147,8 +180,11 @@ function BunnyAuthorView(runtime, element, config) {
     postJson(endpoints.uploadToken, { title: file.name || state.title || "Untitled video" })
       .then(function (res) {
         if (!res.ok) {
-          return res.json().then(function (body) {
-            throw new Error((body && body.error) || "Upload token failed");
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            // DRF emits `detail`; our endpoints emit `error`. Show whichever
+            // we can find, with HTTP status as a last-resort hint.
+            var msg = (body && (body.error || body.detail)) || ("Upload token failed (HTTP " + res.status + ")");
+            throw new Error(msg);
           });
         }
         return res.json();
@@ -338,7 +374,7 @@ function BunnyAuthorView(runtime, element, config) {
     if (!state.guid) return;
     closeModal();
     var url = endpoints.videoDetail.replace("{guid}", encodeURIComponent(state.guid));
-    fetch(url, { method: "DELETE", credentials: "same-origin" })
+    deleteJson(url)
       .then(function (res) {
         if (!res.ok && res.status !== 404) throw new Error("delete " + res.status);
         return postJson(clearVideoUrl);
