@@ -72,10 +72,17 @@
     </div>
     <div class="bunny-xblock__processing" role="status" aria-live="polite">
       <span class="bunny-xblock__card-pill" aria-hidden="true">Encoding</span>
-      <span class="bunny-xblock__pulse" aria-hidden="true"></span>
+      <span class="bunny-xblock__pulse" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
       <div class="bunny-xblock__processing-text">
         <h3 class="bunny-xblock__processing-headline">Bunny is encoding your video</h3>
-        <p class="bunny-xblock__processing-sub">Usually under two minutes. This view updates automatically — no refresh needed.</p>
+        <p class="bunny-xblock__processing-sub">
+          Short clips finish in a minute or two. Longer videos and 4K can take 10&ndash;30 minutes — it's safe to close Studio and come back later. The block updates itself as soon as Bunny is done.
+        </p>
+        <span class="bunny-xblock__elapsed" data-bunny-elapsed hidden>
+          <span data-bunny-elapsed-value>0:00</span> elapsed
+        </span>
       </div>
     </div>
   </section>
@@ -110,6 +117,32 @@
         <span data-bunny-guid>—</span>
       </span>
     </div>
+
+    <div class="bunny-xblock__thumbnail-row">
+      <div class="bunny-xblock__thumbnail-tile" data-bunny-thumbnail-tile>
+        <img class="bunny-xblock__thumbnail-img"
+             src="{poster_url}"
+             alt="Current video thumbnail"
+             data-bunny-thumbnail-img
+             onerror="this.style.display='none';" />
+        <span class="bunny-xblock__thumbnail-fallback" aria-hidden="true">No thumbnail yet</span>
+      </div>
+      <div class="bunny-xblock__thumbnail-text">
+        <p class="bunny-xblock__thumbnail-label">Poster image</p>
+        <p class="bunny-xblock__thumbnail-help">
+          Bunny generates a frame automatically. Upload a custom image (JPG or PNG) to override it — handy for branded course thumbnails.
+        </p>
+        <div class="bunny-xblock__thumbnail-actions">
+          <button type="button" class="bunny-xblock__btn" data-action="upload-thumbnail">
+            Replace thumbnail
+          </button>
+          <span class="bunny-xblock__thumbnail-status" data-bunny-thumbnail-status hidden></span>
+        </div>
+        <input type="file" accept="image/jpeg,image/png,image/webp"
+               class="bunny-xblock__file" data-bunny-thumbnail-file hidden />
+      </div>
+    </div>
+
     <div class="bunny-xblock__actions">
       <button type="button" class="bunny-xblock__btn" data-action="replace">Replace video</button>
       <span class="bunny-xblock__actions-spacer"></span>

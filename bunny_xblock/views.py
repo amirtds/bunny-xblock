@@ -273,6 +273,77 @@ class EmbedUrlView(APIView):
         return Response({"url": url})
 
 
+class ThumbnailView(APIView):
+    """
+    ``POST /videos/<guid>/thumbnail`` — replace the video's poster.
+
+    Body is multipart form-data with a single ``thumbnail`` file (JPG, PNG,
+    or WebP, ≤ 5 MB). The file is forwarded to Bunny as the raw body of
+    ``POST /library/{libraryId}/videos/{videoId}/thumbnail``. After Bunny
+    accepts, we refresh our cached ``BunnyVideo.thumbnail_url`` from the
+    re-fetched video metadata so the Studio UI shows the new image without
+    a hard refresh.
+    """
+
+    permission_classes = [IsAuthenticated, IsStaffUser]
+    parser_classes = []  # let DRF auto-negotiate (multipart)
+
+    ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+    MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+    def post(self, request, guid: str):
+        row = get_object_or_404(BunnyVideo, guid=guid)
+        upload = request.FILES.get("thumbnail")
+        if upload is None:
+            return Response(
+                {"error": "Missing 'thumbnail' file in multipart body."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        content_type = (upload.content_type or "").lower()
+        if content_type not in self.ALLOWED_MIME:
+            return Response(
+                {"error": f"Unsupported image type ({content_type or 'unknown'}). Use JPG, PNG, or WebP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if upload.size and upload.size > self.MAX_BYTES:
+            return Response(
+                {"error": f"Image too large ({upload.size} bytes). Limit is {self.MAX_BYTES} bytes."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        cfg, err = _bunny_config_or_error()
+        if err is not None:
+            return err
+
+        try:
+            image_bytes = upload.read()
+            bunny_api.set_bunny_thumbnail(cfg, guid, image_bytes, content_type)
+        except bunny_api.BunnyAPIError as exc:
+            log.error(
+                "[bunny:thumbnail] set_thumbnail_failed",
+                extra={"guid": guid, "err": str(exc)},
+            )
+            return Response({"error": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        # Re-fetch so we pick up Bunny's new thumbnail filename (if any) and
+        # the cdn_hostname-derived URL. Cheap — one Bunny GET. Cached on row.
+        try:
+            meta = bunny_api.get_bunny_video(cfg, guid)
+            if meta:
+                thumb = bunny_api.bunny_thumbnail_url(
+                    cfg.cdn_hostname, guid, meta.get("thumbnailFileName")
+                )
+                if thumb:
+                    row.thumbnail_url = thumb
+                    row.save(update_fields=["thumbnail_url", "updated_at"])
+        except bunny_api.BunnyAPIError:
+            # Bunny rejected the meta refresh — the thumbnail upload itself
+            # succeeded, so report success. UI re-polls on its next tick.
+            pass
+
+        return Response({"ok": True, "thumbnail_url": row.thumbnail_url or None})
+
+
 # ---- Serialization --------------------------------------------------------------------
 
 

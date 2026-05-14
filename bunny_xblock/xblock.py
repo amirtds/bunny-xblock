@@ -174,11 +174,14 @@ class BunnyVideoXBlock(XBlock):
                 "libraryId": self.library_id,
                 "status": self.status,
                 "title": self.title,
+                "thumbnailUrl": self.thumbnail_url or "",
+                "durationSec": self.duration_sec or 0,
                 "embedUrl": embed_url,
                 "endpoints": {
                     "uploadToken": "/api/xblock_bunny/upload-token",
                     "finalize": "/api/xblock_bunny/videos/{guid}/finalize",
                     "videoDetail": "/api/xblock_bunny/videos/{guid}",
+                    "thumbnail": "/api/xblock_bunny/videos/{guid}/thumbnail",
                     "embedUrl": "/api/xblock_bunny/embed-url",
                     "tusEndpoint": "https://video.bunnycdn.com/tusupload",
                 },
@@ -285,6 +288,23 @@ class BunnyVideoXBlock(XBlock):
             self.display_name = title
         self._persist_to_modulestore()
         return {"ok": True, "title": title}
+
+    @XBlock.json_handler
+    def update_thumbnail(self, data, suffix=""):
+        """
+        Sync a freshly-uploaded thumbnail URL into the block.
+
+        Called from author_view.js after the thumbnail endpoint has accepted
+        a custom image and Bunny has acknowledged. We persist the new URL
+        through to the modulestore so the LMS-side ``student_view`` poster
+        picks it up on the next render.
+        """
+        thumbnail_url = (data.get("thumbnail_url") or "").strip()[:1000]
+        if not thumbnail_url:
+            return {"ok": False, "error": "thumbnail_url is required"}
+        self.thumbnail_url = thumbnail_url
+        self._persist_to_modulestore()
+        return {"ok": True, "thumbnail_url": thumbnail_url}
 
     @XBlock.json_handler
     def clear_video(self, data, suffix=""):

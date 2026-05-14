@@ -178,6 +178,33 @@ def delete_bunny_video(cfg: BunnyConfig, guid: str) -> None:
         raise BunnyAPIError(res.status_code, f"Bunny deleteVideo failed ({res.status_code}): {res.text[:200]}")
 
 
+def set_bunny_thumbnail(cfg: BunnyConfig, guid: str, image_bytes: bytes, content_type: str) -> None:
+    """
+    Upload a custom thumbnail to Bunny.
+
+    Bunny's documented endpoint:
+        POST /library/{libraryId}/videos/{videoId}/thumbnail
+    with the raw image bytes as the request body. The Content-Type header
+    is set to the image's MIME type (image/jpeg, image/png, image/webp).
+    """
+    url = f"{BUNNY_BASE}/library/{cfg.library_id}/videos/{guid}/thumbnail"
+    res = requests.post(
+        url,
+        headers={
+            "AccessKey": cfg.api_key,
+            "Accept": "application/json",
+            "Content-Type": content_type or "application/octet-stream",
+        },
+        data=image_bytes,
+        timeout=30,
+    )
+    if not res.ok:
+        raise BunnyAPIError(
+            res.status_code,
+            f"Bunny setThumbnail failed ({res.status_code}): {res.text[:200]}",
+        )
+
+
 # --- Status mapping -----------------------------------------------------------
 
 

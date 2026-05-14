@@ -9,6 +9,7 @@ from django.urls import path
 
 from .views import (
     EmbedUrlView,
+    ThumbnailView,
     UploadTokenView,
     VideoDetailView,
     VideoFinalizeView,
@@ -22,6 +23,7 @@ urlpatterns = [
     path("upload-token", UploadTokenView.as_view(), name="upload_token"),
     path("videos/<str:guid>", VideoDetailView.as_view(), name="video_detail"),
     path("videos/<str:guid>/finalize", VideoFinalizeView.as_view(), name="video_finalize"),
+    path("videos/<str:guid>/thumbnail", ThumbnailView.as_view(), name="video_thumbnail"),
     path("embed-url", EmbedUrlView.as_view(), name="embed_url"),
     # Bunny → Cubite (public, token-in-URL auth)
     path("webhook/<str:token>", webhook, name="webhook"),

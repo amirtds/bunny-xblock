@@ -47,6 +47,11 @@ function BunnyAuthorView(runtime, element, config) {
   var guidLabel = root.querySelector("[data-bunny-guid]");
   var durationContainer = root.querySelector("[data-bunny-duration]");
   var durationValue = root.querySelector("[data-bunny-duration-value]");
+  var elapsedContainer = root.querySelector("[data-bunny-elapsed]");
+  var elapsedValue = root.querySelector("[data-bunny-elapsed-value]");
+  var thumbnailImg = root.querySelector("[data-bunny-thumbnail-img]");
+  var thumbnailFile = root.querySelector("[data-bunny-thumbnail-file]");
+  var thumbnailStatus = root.querySelector("[data-bunny-thumbnail-status]");
 
   // ---- State ----------------------------------------------------------------------
 
@@ -55,7 +60,8 @@ function BunnyAuthorView(runtime, element, config) {
     libraryId: config.libraryId || "",
     title: config.title || "",
     status: config.status || (config.guid ? "encoding" : ""),
-    durationSec: 0,
+    durationSec: config.durationSec || 0,
+    thumbnailUrl: config.thumbnailUrl || "",
     currentUpload: null,
     pollAbort: null,
   };
@@ -64,6 +70,7 @@ function BunnyAuthorView(runtime, element, config) {
   var setVideoUrl = runtime.handlerUrl(element, "set_video");
   var updateStatusUrl = runtime.handlerUrl(element, "update_status");
   var updateTitleUrl = runtime.handlerUrl(element, "update_title");
+  var updateThumbnailUrl = runtime.handlerUrl(element, "update_thumbnail");
   var clearVideoUrl = runtime.handlerUrl(element, "clear_video");
 
   // ---- Panel switching (defensive: attribute + inline style) ----------------------
@@ -85,6 +92,7 @@ function BunnyAuthorView(runtime, element, config) {
       state.pollAbort.abort();
       state.pollAbort = null;
     }
+    if (panel !== "processing") stopElapsedTimer();
   }
 
   function showError(msg) {
@@ -165,6 +173,19 @@ function BunnyAuthorView(runtime, element, config) {
         durationContainer.style.display = "none";
       }
     }
+    // Keep the thumbnail tile in sync with state. The img has a cache-busting
+    // query so a same-URL refresh (after a custom thumbnail upload) still
+    // re-paints in the browser.
+    if (thumbnailImg) {
+      if (state.thumbnailUrl) {
+        var bust = (state.thumbnailUrl.indexOf("?") === -1 ? "?" : "&") + "v=" + (state.durationSec || 0);
+        thumbnailImg.src = state.thumbnailUrl + bust;
+        thumbnailImg.style.display = "";
+      } else {
+        thumbnailImg.removeAttribute("src");
+        thumbnailImg.style.display = "none";
+      }
+    }
   }
 
   // ---- Upload flow ---------------------------------------------------------------
@@ -239,6 +260,7 @@ function BunnyAuthorView(runtime, element, config) {
         state.title = meta.title || state.title;
         state.status = meta.status || "encoding";
         state.durationSec = meta.duration_sec || 0;
+        if (meta.thumbnail_url) state.thumbnailUrl = meta.thumbnail_url;
         setTitleInputs(state.title);
         syncReadyMeta();
         return postJson(setVideoUrl, {
@@ -271,7 +293,46 @@ function BunnyAuthorView(runtime, element, config) {
 
   // ---- Polling -------------------------------------------------------------------
 
+  // ---- Elapsed-time counter (visible while processing) ---------------------------
+
+  var elapsedInterval = null;
+  var elapsedStartedAt = null;
+
+  function fmtElapsed(seconds) {
+    var m = Math.floor(seconds / 60);
+    var s = Math.floor(seconds % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function startElapsedTimer() {
+    if (elapsedInterval) return; // already running across panel re-shows
+    elapsedStartedAt = Date.now();
+    if (elapsedContainer) {
+      elapsedContainer.hidden = false;
+      elapsedContainer.style.display = "";
+    }
+    if (elapsedValue) elapsedValue.textContent = "0:00";
+    elapsedInterval = setInterval(function () {
+      if (!elapsedValue) return;
+      var sec = Math.floor((Date.now() - elapsedStartedAt) / 1000);
+      elapsedValue.textContent = fmtElapsed(sec);
+    }, 1000);
+  }
+
+  function stopElapsedTimer() {
+    if (elapsedInterval) {
+      clearInterval(elapsedInterval);
+      elapsedInterval = null;
+    }
+    elapsedStartedAt = null;
+    if (elapsedContainer) {
+      elapsedContainer.hidden = true;
+      elapsedContainer.style.display = "none";
+    }
+  }
+
   function startPolling() {
+    startElapsedTimer();
     if (state.pollAbort) state.pollAbort.abort();
     state.pollAbort = new AbortController();
     var signal = state.pollAbort.signal;
@@ -289,6 +350,7 @@ function BunnyAuthorView(runtime, element, config) {
           if (typeof meta.duration_sec === "number" && meta.duration_sec > 0) {
             state.durationSec = meta.duration_sec;
           }
+          if (meta.thumbnail_url) state.thumbnailUrl = meta.thumbnail_url;
           if (meta.status !== state.status) {
             state.status = meta.status;
             postJson(updateStatusUrl, {
@@ -397,10 +459,73 @@ function BunnyAuthorView(runtime, element, config) {
     state.status = "";
     state.title = "";
     state.durationSec = 0;
+    state.thumbnailUrl = "";
     setTitleInputs("");
     syncReadyMeta();
     postJson(clearVideoUrl).catch(function () { /* ignore */ });
     show("empty");
+  }
+
+  // ---- Thumbnail replace -------------------------------------------------------
+
+  function setThumbnailStatus(message, state) {
+    if (!thumbnailStatus) return;
+    if (message) {
+      thumbnailStatus.textContent = message;
+      thumbnailStatus.hidden = false;
+      thumbnailStatus.style.display = "";
+      thumbnailStatus.setAttribute("data-state", state || "info");
+    } else {
+      thumbnailStatus.textContent = "";
+      thumbnailStatus.hidden = true;
+      thumbnailStatus.style.display = "none";
+      thumbnailStatus.removeAttribute("data-state");
+    }
+  }
+
+  function uploadThumbnail(file) {
+    if (!file || !state.guid) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      setThumbnailStatus("Use a JPG, PNG, or WebP image.", "error");
+      return;
+    }
+    setThumbnailStatus("Uploading…", "info");
+    var url = endpoints.thumbnail.replace("{guid}", encodeURIComponent(state.guid));
+    var form = new FormData();
+    form.append("thumbnail", file);
+    fetch(url, {
+      method: "POST",
+      headers: csrfHeaders({ "Accept": "application/json" }),
+      credentials: "same-origin",
+      body: form,
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            throw new Error((body && (body.error || body.detail)) || ("Thumbnail upload failed (HTTP " + res.status + ")"));
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (data.thumbnail_url) {
+          state.thumbnailUrl = data.thumbnail_url;
+          // Cache-bust so Bunny serving the new image at the same URL is
+          // re-fetched by the browser instead of pulled from cache.
+          if (thumbnailImg) {
+            var bust = (data.thumbnail_url.indexOf("?") === -1 ? "?" : "&") + "t=" + Date.now();
+            thumbnailImg.src = data.thumbnail_url + bust;
+            thumbnailImg.style.display = "";
+          }
+          postJson(updateThumbnailUrl, { thumbnail_url: data.thumbnail_url }).catch(function () { /* fire and forget */ });
+        }
+        setThumbnailStatus("Updated", "success");
+        setTimeout(function () { setThumbnailStatus("", null); }, 2500);
+      })
+      .catch(function (err) {
+        console.error("[bunny:author] thumbnail upload failed", err);
+        setThumbnailStatus(err.message || "Upload failed", "error");
+      });
   }
 
   function deleteVideo() {
@@ -472,8 +597,17 @@ function BunnyAuthorView(runtime, element, config) {
       case "delete": openModal(); break;
       case "modal-cancel": closeModal(); break;
       case "modal-confirm": deleteVideo(); break;
+      case "upload-thumbnail": thumbnailFile && thumbnailFile.click(); break;
     }
   });
+
+  if (thumbnailFile) {
+    thumbnailFile.addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (file) uploadThumbnail(file);
+      e.target.value = "";
+    });
+  }
 
   // Modal: close on backdrop click + Escape.
   if (modal) {

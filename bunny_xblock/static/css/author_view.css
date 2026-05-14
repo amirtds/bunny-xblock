@@ -468,35 +468,63 @@
   color: var(--bunny-muted);
 }
 
-/* Horizontal pulse bar — replaces the 40×40 square. Reads as an in-progress
-   indicator on a static screenshot too. */
+/* Three-dot bouncing indicator — replaces the barber-pole bar. Renders
+   cleanly at every size (no gradient seams), reads as "processing" on
+   static screenshots, and stays calm enough not to compete with the
+   encoding-headline next to it. */
 .bunny-xblock--author .bunny-xblock__pulse {
-  width: 72px;
-  height: 18px;
-  border-radius: 10px;
-  background:
-    repeating-linear-gradient(
-      45deg,
-      var(--bunny-accent) 0,
-      var(--bunny-accent) 6px,
-      var(--bunny-accent-soft) 6px,
-      var(--bunny-accent-soft) 12px
-    );
-  background-size: 100% 100%;
-  animation: bunny-pole 1.6s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   flex-shrink: 0;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.4) inset,
-    0 4px 12px -4px rgba(194, 65, 12, 0.2);
+  padding: 0 0.125rem;
 }
 
-@keyframes bunny-pole {
-  0%   { background-position: 0 0; }
-  100% { background-position: -34px 0; }
+.bunny-xblock--author .bunny-xblock__pulse span {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bunny-accent);
+  animation: bunny-pulse 1.2s cubic-bezier(0.45, 0, 0.55, 1) infinite both;
+}
+
+.bunny-xblock--author .bunny-xblock__pulse span:nth-child(2) { animation-delay: 0.15s; }
+.bunny-xblock--author .bunny-xblock__pulse span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes bunny-pulse {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bunny-xblock--author .bunny-xblock__pulse { animation: none; }
+  .bunny-xblock--author .bunny-xblock__pulse span { animation: none; opacity: 1; }
+}
+
+/* Elapsed-time chip inside the processing card */
+.bunny-xblock--author .bunny-xblock__elapsed {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.625rem;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 999px;
+  background: rgba(194, 65, 12, 0.08);
+  color: var(--bunny-accent-strong);
+  font-family: var(--bunny-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.bunny-xblock--author .bunny-xblock__elapsed::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
 }
 
 /* Status pill inside the card — replaces left-rail accent */
@@ -618,6 +646,92 @@
 }
 
 .bunny-xblock--author .bunny-xblock__actions-spacer { flex: 1; }
+
+/* ---- Thumbnail row (ready state) -------------------------------------- */
+
+.bunny-xblock--author .bunny-xblock__thumbnail-row {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: var(--bunny-surface);
+  border: 1px solid var(--bunny-line);
+  border-radius: 12px;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-tile {
+  position: relative;
+  flex-shrink: 0;
+  width: 160px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bunny-paper);
+  border: 1px solid var(--bunny-line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-fallback {
+  font-family: var(--bunny-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-label {
+  margin: 0 0 0.5rem;
+  font-family: var(--bunny-font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--bunny-muted);
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-help {
+  margin: 0 0 0.875rem;
+  font-size: 0.9375rem;
+  color: var(--bunny-muted);
+  line-height: 1.5;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-status {
+  font-family: var(--bunny-font-mono);
+  font-size: 0.8125rem;
+  color: var(--bunny-accent);
+  letter-spacing: 0.02em;
+}
+
+.bunny-xblock--author .bunny-xblock__thumbnail-status[data-state="error"] {
+  color: var(--bunny-error);
+}
+.bunny-xblock--author .bunny-xblock__thumbnail-status[data-state="success"] {
+  color: var(--bunny-success);
+}
 
 /* ---- Failed state ------------------------------------------------------- */
 
