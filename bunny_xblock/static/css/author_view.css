@@ -156,74 +156,99 @@
   flex-shrink: 0;
 }
 
-.bunny-xblock--author .bunny-xblock__lockup-spacer { flex: 1; }
-
-.bunny-xblock--author .bunny-xblock__lockup-version {
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  color: var(--bunny-line-strong);
-}
-
-/* ---- Empty state -------------------------------------------------------- */
+/* ---- Empty state ------------------------------------------------------- */
+/*
+ * Wide-viewport tuned:
+ *   - Dropzone capped at max-width 880px so a 1700px Studio width doesn't
+ *     leave dead cream bands on either side.
+ *   - At >=720px the interior is a two-column flex (icon | text+button),
+ *     so the canvas earns its width. Below 720px it collapses back to a
+ *     centred vertical stack.
+ *   - Single-card treatment: the dropzone is a *region* of the XBlock
+ *     surface, not a second card. No solid border, just a dashed outline
+ *     that signals "drop target", with a warm radial gradient.
+ */
 
 .bunny-xblock--author .bunny-xblock__dropzone {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
-  padding: 3rem 2rem;
-  border-radius: 12px;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  min-height: 280px;
+  padding: 2.5rem 2rem;
+  border-radius: 14px;
+  /* Dashed border drawn via mask-composite so it sits on top of the
+     background image without compositing artifacts. */
   border: 1.5px dashed var(--bunny-line-strong);
-  background-color: var(--bunny-surface);
+  background-color: transparent;
   background-image:
-    radial-gradient(ellipse 60% 50% at center,
-      rgba(194, 65, 12, 0.06) 0%,
-      transparent 60%),
-    radial-gradient(circle at 20% 20%,
-      rgba(20, 19, 15, 0.025) 0%,
-      transparent 35%),
-    radial-gradient(circle at 80% 80%,
-      rgba(20, 19, 15, 0.025) 0%,
-      transparent 35%);
-  text-align: center;
+    radial-gradient(ellipse 80% 75% at center,
+      var(--bunny-surface-deep) 0%,
+      var(--bunny-surface) 55%,
+      transparent 100%);
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    background-color 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone:hover {
-  border-color: var(--bunny-line-strong);
-  background-color: var(--bunny-surface-deep);
+  border-color: var(--bunny-accent);
+  background-image:
+    radial-gradient(ellipse 80% 75% at center,
+      var(--bunny-surface-deep) 0%,
+      var(--bunny-surface) 55%,
+      transparent 100%),
+    radial-gradient(ellipse 60% 40% at center,
+      rgba(194, 65, 12, 0.06) 0%,
+      transparent 100%);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone:focus-visible {
-  outline: 3px solid var(--bunny-accent);
-  outline-offset: 4px;
+  outline: none;
+  border-color: var(--bunny-accent);
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.18);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone.is-dragover {
   border-color: var(--bunny-accent);
-  background-color: var(--bunny-surface-deep);
-  transform: scale(0.997);
+  transform: scale(0.998);
+  box-shadow: 0 0 0 4px rgba(194, 65, 12, 0.2);
 }
 
+/* Two-column composition for wide canvases. */
 .bunny-xblock--author .bunny-xblock__dropzone-inner {
-  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  text-align: center;
 }
 
-/* Stagger reveal on first paint */
-.bunny-xblock--author .bunny-xblock__dropzone-inner > * {
+@media (min-width: 720px) {
+  .bunny-xblock--author .bunny-xblock__dropzone-inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 2.5rem;
+    text-align: left;
+    justify-content: center;
+  }
+}
+
+/* First-paint stagger reveal. */
+.bunny-xblock--author .bunny-xblock__dropzone-icon,
+.bunny-xblock--author .bunny-xblock__dropzone-text {
   opacity: 0;
   animation: bunny-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(1) { animation-delay: 0.05s; }
-.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(2) { animation-delay: 0.11s; }
-.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(3) { animation-delay: 0.17s; }
-.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(4) { animation-delay: 0.23s; }
-.bunny-xblock--author .bunny-xblock__dropzone-inner > *:nth-child(5) { animation-delay: 0.29s; }
+.bunny-xblock--author .bunny-xblock__dropzone-icon { animation-delay: 0.05s; }
+.bunny-xblock--author .bunny-xblock__dropzone-text { animation-delay: 0.18s; }
 
 @keyframes bunny-rise {
   from { opacity: 0; transform: translateY(8px); }
@@ -231,7 +256,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bunny-xblock--author .bunny-xblock__dropzone-inner > * {
+  .bunny-xblock--author .bunny-xblock__dropzone-icon,
+  .bunny-xblock--author .bunny-xblock__dropzone-text {
     opacity: 1;
     animation: none;
   }
@@ -239,9 +265,8 @@
 
 .bunny-xblock--author .bunny-xblock__dropzone-icon {
   display: inline-flex;
-  width: 84px;
-  height: 84px;
-  margin-bottom: 1.5rem;
+  width: 96px;
+  height: 96px;
   align-items: center;
   justify-content: center;
   color: var(--bunny-accent);
@@ -250,21 +275,39 @@
   border-radius: 50%;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.6) inset,
-    0 8px 20px -8px rgba(194, 65, 12, 0.25);
+    0 10px 24px -8px rgba(194, 65, 12, 0.3);
+  flex-shrink: 0;
+  /* Continuous gentle invite — fires on a 4.5s cycle once first-paint
+     animation has resolved, then stays running. The arrow gently floats. */
+  animation:
+    bunny-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    bunny-icon-bob 4.5s ease-in-out 0.9s infinite;
 }
 
-.bunny-xblock--author .bunny-xblock__dropzone-eyebrow {
-  margin: 0 0 0.625rem;
-  font-family: var(--bunny-font-mono);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--bunny-accent);
+@keyframes bunny-icon-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bunny-xblock--author .bunny-xblock__dropzone-icon {
+    animation: none;
+  }
+}
+
+.bunny-xblock--author .bunny-xblock__dropzone-text {
+  max-width: 460px;
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .bunny-xblock--author .bunny-xblock__dropzone-text {
+    max-width: 520px;
+  }
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-headline {
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
   font-family: var(--bunny-font-display);
   font-size: clamp(1.875rem, 1rem + 1.6vw, 2.625rem);
   font-weight: 500;
@@ -277,25 +320,25 @@
 
 .bunny-xblock--author .bunny-xblock__dropzone-headline em {
   font-style: italic;
-  font-variation-settings: "opsz" 144, "SOFT" 50, "wonk" 1;
+  /* Up-weight the italic accent so the editorial signature reads at any width. */
+  font-size: 1.08em;
+  font-variation-settings: "opsz" 144, "SOFT" 60, "wonk" 1;
   color: var(--bunny-accent);
 }
 
 .bunny-xblock--author .bunny-xblock__dropzone-sub {
-  margin: 0 0 2rem;
+  margin: 0 0 1.5rem;
   font-size: 1.0625rem;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--bunny-muted);
-  max-width: 52ch;
-  margin-left: auto;
-  margin-right: auto;
 }
 
-.bunny-xblock--author .bunny-xblock__dropzone-sub-formats {
+.bunny-xblock--author .bunny-xblock__dropzone-fineprint {
+  margin: 0.875rem 0 0;
   font-family: var(--bunny-font-mono);
-  font-size: 0.875rem;
-  color: var(--bunny-ink);
-  letter-spacing: 0.02em;
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  color: var(--bunny-muted);
 }
 
 .bunny-xblock--author .bunny-xblock__error {

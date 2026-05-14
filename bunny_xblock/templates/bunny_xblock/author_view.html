@@ -5,8 +5,6 @@
   <div class="bunny-xblock__lockup" aria-hidden="true">
     <span class="bunny-xblock__lockup-dot"></span>
     <span>Bunny Stream</span>
-    <span class="bunny-xblock__lockup-spacer"></span>
-    <span class="bunny-xblock__lockup-version">v0.1</span>
   </div>
 
   <!-- ─── State: empty ──────────────────────────────────────────────── -->
@@ -18,24 +16,26 @@
          aria-label="Drop a video file here or activate to choose one">
       <div class="bunny-xblock__dropzone-inner">
         <span class="bunny-xblock__dropzone-icon" aria-hidden="true">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 16V4" />
             <path d="m6 10 6-6 6 6" />
             <path d="M4 20h16" />
           </svg>
         </span>
-        <p class="bunny-xblock__dropzone-eyebrow">Bunny Stream upload</p>
-        <h2 class="bunny-xblock__dropzone-headline">
-          Drop a video <em>here</em>
-        </h2>
-        <p class="bunny-xblock__dropzone-sub">
-          Direct browser-to-Bunny upload. Your Open&nbsp;edX server never touches the bytes — the file streams straight to the CDN.
-          <br />
-          <span class="bunny-xblock__dropzone-sub-formats">Accepts MP4 · MOV · MKV · WebM</span>
-        </p>
-        <button type="button" class="bunny-xblock__btn bunny-xblock__btn--primary" data-action="choose">
-          Choose video
-        </button>
+        <div class="bunny-xblock__dropzone-text">
+          <h2 class="bunny-xblock__dropzone-headline">
+            Drop a video <em>here</em>
+          </h2>
+          <p class="bunny-xblock__dropzone-sub">
+            Direct browser-to-Bunny upload — your Open&nbsp;edX server never touches the bytes.
+          </p>
+          <button type="button" class="bunny-xblock__btn bunny-xblock__btn--primary" data-action="choose">
+            Choose video
+          </button>
+          <p class="bunny-xblock__dropzone-fineprint">
+            Accepts MP4 · MOV · WebM · MKV — up to 1 GB recommended.
+          </p>
+        </div>
         <input type="file" accept="video/*" class="bunny-xblock__file" data-bunny-file hidden />
       </div>
     </div>
